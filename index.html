@@ -162,6 +162,8 @@ h3{font-size:1.2rem;margin:0}
 .snd svg{width:20px;height:20px}
 .sheet-hd h2{flex:1;min-width:0}
 .sheet-hd .wk-name{width:100%;font-size:1.4rem}
+.mode-tag{font-size:.8rem;font-weight:700;color:var(--accent);background:var(--soft);border-radius:8px;padding:4px 8px;white-space:nowrap}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.92rem;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .hidden{display:none!important}
 .splash{position:fixed;inset:0;z-index:100;background:#FFFFFF;color:#0D121C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);transition:opacity .35s ease,visibility .35s}
@@ -400,8 +402,8 @@ const METRICS={
   bw:[['Most reps','maxR','reps'],['Total reps','totR','reps'],['Most added','heavy','kg']],
   cardio:[['Distance','dist','km'],['Time','time','min']],
   time:[['Longest hold','hold','sec']]};
-function series(name){const type=exInfo(name).type;const out=[];
-  [...S.workouts].sort((a,b)=>a.start-b.start).forEach(w=>{const e=w.exercises.find(x=>x.name===name);if(e)out.push({date:w.start,m:metricsOf(e,type),sets:e.sets,wid:w.id})});return out}
+function series(name,excludeId){const type=exInfo(name).type;const out=[];
+  [...S.workouts].sort((a,b)=>a.start-b.start).forEach(w=>{if(w.id===excludeId)return;const e=w.exercises.find(x=>x.name===name);if(e)out.push({date:w.start,m:metricsOf(e,type),sets:e.sets,wid:w.id})});return out}
 function exCounts(){const c={};S.workouts.forEach(w=>w.exercises.forEach(e=>c[e.name]=(c[e.name]||0)+1));return c}
 
 /* ================= Charts ================= */
@@ -439,7 +441,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 
 function render(){
   document.querySelectorAll('.tab').forEach(b=>{if(b.dataset.tab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
-  $('title').textContent={workout:S.active?'Workout':'Train',history:'History',progress:'Progress',exercises:'Exercises'}[tab];
+  $('title').textContent={workout:S.active?(S.active.mode==='edit'?'Edit workout':'Workout'):'Train',history:'History',progress:'Progress',exercises:'Exercises'}[tab];
   const v=$('view');
   if(tab==='workout')v.innerHTML=S.active?viewActive():viewStart();
   if(tab==='history')v.innerHTML=viewHistory();
@@ -453,10 +455,20 @@ document.querySelector('.tabbar').addEventListener('click',e=>{const b=e.target.
 function viewStart(){
   const recent=sorted().slice(0,5);const wk=weekStart(Date.now());
   const thisWeek=S.workouts.filter(w=>w.start>=wk).length;
+  const today=sorted().filter(w=>isToday(w.start));
   return`<div class="hero"><h2 style="margin:0">Ready to train?</h2><p class="muted">${thisWeek?`${thisWeek} workout${thisWeek>1?'s':''} done this week.`:'No workouts yet this week.'}</p>
   <button class="btn primary block" data-act="start">Start empty workout</button></div>
+  ${today.length?`<h2>Continue today's workout</h2>${today.map(w=>`<button class="row-tap" data-act="cont" data-id="${w.id}"><span><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDur(w.end-w.start)} so far, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</span></span><span class="btn sm">Continue</span></button>`).join('')}`:''}
   ${recent.length?`<h2>Repeat a recent workout</h2>${recent.map(w=>`<button class="row-tap" data-act="repeat" data-id="${w.id}"><span><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDate(w.start)}, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</span></span><span class="btn sm">Do again</span></button>`).join('')}`
   :`<p class="empty">Start a workout, add exercises from the list, and tick off each set as you go. Everything you log shows up in History and Progress.</p>`}`}
+function isToday(ts){const d=new Date(ts),n=new Date();return d.toDateString()===n.toDateString()}
+/* Re-open a finished workout: mode 'edit' fixes it up, mode 'resume' carries on training (split sessions) */
+function loadWorkout(w,mode){if(!w)return;
+  if(S.active){toast('Finish or discard your current workout first.');return}
+  S.active={id:w.id,name:w.name,start:Date.now(),updated:Date.now(),mode,orig:{start:w.start,end:w.end},
+    exercises:w.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a??'',b:x.b??'',done:true}))}))};
+  tab='workout';saveProfile(true);closeSheet();render();window.scrollTo(0,0);
+  toast(mode==='edit'?'Editing. Change anything, then Save changes.':'Carry on where you left off.')}
 function startWorkout(from){
   const h=new Date().getHours();
   S.active={id:uid(),name:from?from.name:(h<12?'Morning workout':h<17?'Afternoon workout':'Evening workout'),start:Date.now(),updated:Date.now(),
@@ -468,13 +480,14 @@ function startWorkout(from){
 /* ================= Workout: active ================= */
 function viewActive(){
   const a=S.active;
-  return`<div class="wk-head"><input class="wk-name" id="wkName" value="${esc(a.name)}" aria-label="Workout name"><span class="clock" id="clock">0:00</span></div>
-  <div class="meta-row"><span>${fmtDate(a.start,true)}</span><span class="right"><button class="snd" data-act="sound" aria-pressed="${!!S.sound}" aria-label="Tick sounds ${S.sound?'on':'off'}">${S.sound?SND_ON:SND_OFF}</button><label>Rest <select id="restSel">${[0,30,60,90,120,180,240].map(s=>`<option value="${s}" ${s==S.rest?'selected':''}>${s?(s>=60?(s/60)+' min':s+'s'):'Off'}</option>`).join('')}</select></label></span></div>
+  const ed=a.mode==='edit';
+  return`<div class="wk-head"><input class="wk-name" id="wkName" value="${esc(a.name)}" aria-label="Workout name">${ed?'<span class="mode-tag">Editing</span>':'<span class="clock" id="clock">0:00</span>'}</div>
+  <div class="meta-row"><span>${fmtDate(a.mode?a.orig.start:a.start,true)}</span><span class="right"><button class="snd" data-act="sound" aria-pressed="${!!S.sound}" aria-label="Tick sounds ${S.sound?'on':'off'}">${S.sound?SND_ON:SND_OFF}</button><label>Rest <select id="restSel">${[0,30,60,90,120,180,240].map(s=>`<option value="${s}" ${s==S.rest?'selected':''}>${s?(s>=60?(s/60)+' min':s+'s'):'Off'}</option>`).join('')}</select></label></span></div>
   ${a.exercises.map((e,i)=>exCard(e,i)).join('')||'<p class="empty">No exercises yet.</p>'}
   ${a.exercises.some(e=>e.sets.length)?'<p class="tip">Swipe a set to the left to delete it.</p>':''}
   <div class="actions"><button class="btn block" data-act="pick">Add exercises</button>
-  <button class="btn primary block" data-act="finish">Finish workout</button>
-  <button class="btn danger block" data-act="discard">Discard workout</button></div>`}
+  <button class="btn primary block" data-act="finish">${ed?'Save changes':'Finish workout'}</button>
+  <button class="btn danger block" data-act="discard">${a.mode?'Cancel, keep it as it was':'Discard workout'}</button></div>`}
 function exCard(e,i){
   const info=exInfo(e.name),[fa,fb]=FIELDS[info.type],prev=prevSets(e.name,S.active.id)||[],best=histBest(e.name);
   return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}</h3><button class="x" data-act="rmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
@@ -489,7 +502,7 @@ function exCard(e,i){
 function touch(){S.active.updated=Date.now();saveProfile()}
 /* Set PRs: beats your heaviest weight, or best single-set volume (kg x reps), from past workouts and earlier sets today */
 function histBest(name){let heavy=0,vol=0,any=false;
-  S.workouts.forEach(w=>w.exercises.forEach(e=>{if(e.name!==name)return;any=true;e.sets.forEach(s=>{const a=num(s.a)||0,b=num(s.b)||0;heavy=Math.max(heavy,a);vol=Math.max(vol,a*b)})}));
+  S.workouts.forEach(w=>{if(S.active&&w.id===S.active.id)return;w.exercises.forEach(e=>{if(e.name!==name)return;any=true;e.sets.forEach(s=>{const a=num(s.a)||0,b=num(s.b)||0;heavy=Math.max(heavy,a);vol=Math.max(vol,a*b)})})});
   return any?{heavy,vol}:null}
 function setPR(ex,j,best){
   if(!best||exInfo(ex.name).type!=='w')return null;
@@ -540,6 +553,8 @@ $('view').addEventListener('click',e=>{
     touch();render()}
   if(act==='sound'){S.sound=!S.sound;saveProfile();render();if(S.sound)tickSound();toast(S.sound?'Tick sounds on':'Tick sounds off')}
   if(act==='finish')finishWorkout();
+  if(act==='cont')loadWorkout(S.workouts.find(w=>w.id===b.dataset.id),'resume');
+  if(act==='discard'&&S.active.mode){askConfirm(S.active.mode==='edit'?'Cancel editing?':'Stop continuing?','Nothing you changed now will be saved. The workout stays in your history as it was.','Cancel changes',()=>{S.active=null;stopRest();saveProfile(true);closeSheet();render();toast('No changes made')});return}
   if(act==='discard')askConfirm('Discard workout?','Nothing from this workout will be saved.','Discard workout',()=>{S.active=null;stopRest();saveProfile(true);closeSheet();render();toast('Workout discarded')});
   if(act==='hist')openWorkout(b.dataset.id);
   if(act==='exInfo')openExercise(b.dataset.name);
@@ -619,6 +634,8 @@ $('sheet').addEventListener('click',e=>{
     touch();closeSheet();render();return}
   const act=e.target.closest('[data-sact]');if(!act)return;
   if(act.dataset.sact==='again'){closeSheet();if(S.active){toast('Finish or discard your current workout first.');return}tab='workout';startWorkout(S.workouts.find(w=>w.id===act.dataset.id))}
+  if(act.dataset.sact==='edit'){loadWorkout(S.workouts.find(w=>w.id===act.dataset.id),'edit');return}
+  if(act.dataset.sact==='cont'){loadWorkout(S.workouts.find(w=>w.id===act.dataset.id),'resume');return}
   if(act.dataset.sact==='del'){const id=act.dataset.id;askConfirm('Delete workout?','It will be removed from your history and graphs. This cannot be undone.','Delete workout',()=>{S.workouts=S.workouts.filter(w=>w.id!==id);removeWorkout(id);closeSheet();render();toast('Workout deleted')},()=>openWorkout(id))}
   if(act.dataset.sact==='delCustom'){const n=act.dataset.name;askConfirm('Delete exercise?',`${esc(n)} will be removed from the exercise list. Workouts you have already logged keep it.`,'Delete exercise',()=>{S.custom=S.custom.filter(e=>e.name!==n);saveProfile(true);closeSheet();render();toast(n+' deleted')},()=>openExercise(n))}
   if(act.dataset.sact==='yes'){const f=confirmCb.yes;confirmCb={};if(f)f()}
@@ -632,13 +649,16 @@ $('sheet').addEventListener('click',e=>{
 function finishWorkout(){
   const a=S.active;
   const exercises=a.exercises.map(e=>({name:e.name,sets:e.sets.filter(s=>s.done).map(s=>({a:s.a===''?null:num(s.a),b:s.b===''?null:num(s.b)}))})).filter(e=>e.sets.length);
-  if(!exercises.length){toast('Tick at least one set as done before finishing.');return}
+  if(!exercises.length){toast(a.mode?'Tick at least one set, or delete the workout from History.':'Tick at least one set as done before finishing.');return}
   const w={id:a.id,name:a.name.trim()||'Workout',start:a.start,end:Date.now(),exercises};
+  if(a.mode){w.start=a.orig.start;w.end=a.mode==='edit'?a.orig.end:a.orig.end+(Date.now()-a.start)}
   const prs=[];
-  exercises.forEach(e=>{const type=exInfo(e.name).type,m=metricsOf(e,type),hist=series(e.name);if(!hist.length)return;
+  exercises.forEach(e=>{const type=exInfo(e.name).type,m=metricsOf(e,type),hist=series(e.name,a.id);if(!hist.length)return;
     METRICS[type].forEach(([label,key,unit])=>{if(key==='vol'||key==='totR'||key==='time')return;const prev=Math.max(...hist.map(h=>h.m[key]));
       if(m[key]>prev&&m[key]>0)prs.push(`${e.name}: ${label} ${f1(m[key])} ${unit}`)})});
-  S.workouts.push(w);S.active=null;stopRest();saveWorkout(w);saveProfile(true);render();
+  S.workouts=S.workouts.filter(x=>x.id!==w.id);S.workouts.push(w);S.active=null;stopRest();saveWorkout(w);saveProfile(true);
+  if(a.mode==='edit'){tab='history';render();window.scrollTo(0,0);toast('Changes saved');openWorkout(w.id);return}
+  render();
   const sets=exercises.reduce((n,e)=>n+e.sets.length,0);
   openSheet('Workout saved',`<div class="tiles"><div class="tile"><div class="n">${fmtDur(w.end-w.start)}</div><div class="l">Duration</div></div>
   <div class="tile"><div class="n">${fmtVol(wVolume(w))}</div><div class="l">Volume</div></div>
@@ -654,7 +674,7 @@ function stopRest(){restEnd=0;$('rest').classList.add('hidden')}
 $('rest').addEventListener('click',e=>{const v=e.target.dataset.rest;if(!v)return;if(v==='skip')return stopRest();restEnd+=+v*1000;restLen=Math.max(restLen,restEnd-Date.now());tickClock()});
 const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 function tickClock(){
-  const c=$('clock');if(c&&S.active){const s=Math.floor((Date.now()-S.active.start)/1000);c.textContent=s>=3600?Math.floor(s/3600)+':'+mmss(s%3600).padStart(5,'0'):mmss(s)}
+  const c=$('clock');if(c&&S.active){const s=Math.floor((Date.now()-S.active.start+(S.active.mode==='resume'?S.active.orig.end-S.active.orig.start:0))/1000);c.textContent=s>=3600?Math.floor(s/3600)+':'+mmss(s%3600).padStart(5,'0'):mmss(s)}
   if(restEnd){const left=Math.ceil((restEnd-Date.now())/1000);
     if(left<=0){stopRest();toast('Rest over. Next set.');try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
     else{$('restTime').textContent=mmss(left);$('restBar').style.width=Math.max(0,Math.min(100,(restEnd-Date.now())/restLen*100))+'%'}}
@@ -673,7 +693,7 @@ function viewHistory(){
 function openWorkout(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;
   openSheet(`<input class="wk-name" id="histName" data-id="${w.id}" value="${esc(w.name)}" maxlength="60" aria-label="Workout name" enterkeyhint="done">`,`<p class="muted small" style="margin:0 0 8px">Tap the name to rename this workout.</p><p class="muted" style="margin-top:0">${fmtDate(w.start,true)}<br>${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))} volume</p>
   ${w.exercises.map(e=>{const t=exInfo(e.name).type;return`<h3>${esc(e.name)}</h3><div class="hist-sets">${e.sets.map((s,j)=>`<div>${j+1}. ${esc(fmtSet(s,t))}</div>`).join('')}</div>`}).join('')}`,
-  `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn danger" data-sact="del" data-id="${w.id}">Delete</button><button class="btn primary" data-sact="again" data-id="${w.id}">Do again</button></div>`)}
+  `<div class="btn-grid">${isToday(w.start)?`<button class="btn primary" data-sact="cont" data-id="${w.id}" style="grid-column:1/-1">Continue this workout</button>`:''}<button class="btn" data-sact="edit" data-id="${w.id}">Edit</button><button class="btn" data-sact="again" data-id="${w.id}">Do again</button><button class="btn danger" data-sact="del" data-id="${w.id}" style="grid-column:1/-1">Delete</button></div>`)}
 
 /* ================= Progress ================= */
 function viewProgress(){
