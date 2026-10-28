@@ -171,6 +171,7 @@ h3{font-size:1.2rem;margin:0}
 .plan-card .done-tag{font-size:.75rem;font-weight:700;color:var(--green);white-space:nowrap}
 .plan-card .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .mv{display:flex;gap:4px}.mv button{border:1px solid var(--line);background:var(--bg);border-radius:8px;width:32px;height:30px;cursor:pointer;color:var(--muted);font-weight:700}
+.plan-card .btn:disabled{opacity:.55;cursor:default}
 .mv button:disabled{opacity:.35;cursor:default}
 .r-head,.r-row{display:grid;grid-template-columns:34px 1fr 1fr 40px;gap:8px;align-items:center;text-align:center}
 .r-head{font-size:.78rem;color:var(--muted);font-weight:600;padding:0 2px 4px}
@@ -473,7 +474,9 @@ function viewStart(){
   <button class="btn primary block" data-act="start">Start empty workout</button></div>
   ${today.length?`<h2>Continue today's workout</h2>${today.map(w=>`<button class="row-tap" data-act="cont" data-id="${w.id}"><span><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDur(w.end-w.start)} so far, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</span></span><span class="btn sm">Continue</span></button>`).join('')}`:''}
   ${planHTML()}
-  ${recent.length?`<h2>Repeat a past workout</h2>${recent.map(w=>`<button class="row-tap" data-act="repeat" data-id="${w.id}"><span><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDate(w.start)}, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</span></span><span class="btn sm">Do again</span></button>`).join('')}${S.workouts.length>5?`<button class="btn block" data-act="allPast">${showAllPast?'Show fewer':'Show all '+S.workouts.length+' workouts'}</button>`:''}`
+  ${recent.length?`<h2>Past workouts</h2>${recent.map(w=>{const inPlan=S.routines.some(r=>r.from===w.id);return`<div class="plan-card"><div class="top-r"><span style="min-width:0"><span class="t">${esc(w.name)}</span>
+  <div class="s">${fmtDate(w.start)}, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</div></span>${inPlan?'<span class="done-tag">✓ In my plan</span>':''}</div>
+  <div class="btns"><button class="btn sm" data-act="toPlan" data-id="${w.id}" ${inPlan?'disabled':''}>${inPlan?'Saved to plan':'Save to my plan'}</button><button class="btn sm primary" data-act="repeat" data-id="${w.id}">Do again</button></div></div>`}).join('')}${S.workouts.length>5?`<button class="btn block" data-act="allPast">${showAllPast?'Show fewer':'Show all '+S.workouts.length+' workouts'}</button>`:''}`
   :`<p class="empty">Start a workout, add exercises from the list, and tick off each set as you go. Everything you log shows up in History and Progress.</p>`}`}
 /* ================= My plan (workouts saved without starting them) ================= */
 function planHTML(){const wk=weekStart(Date.now()),R=S.routines;
@@ -497,6 +500,10 @@ function viewRoutine(){const r=editR;
   <button class="btn primary block" data-act="rSave">Save to my plan</button>
   <div class="btn-grid"><button class="btn" data-act="rCancel">Cancel</button>${r.isNew?'<button class="btn" disabled>Delete</button>':'<button class="btn danger" data-act="rDel">Delete</button>'}</div></div>`}
 function openRoutine(r){editR=r;tab='workout';closeSheet();render();window.scrollTo(0,0)}
+function saveToPlan(w){if(!w)return;
+  if(S.routines.some(r=>r.from===w.id)){toast('Already in your plan');return}
+  const r=routineFrom(w);delete r.isNew;r.from=w.id;S.routines.push(r);saveProfile(true);closeSheet();render();
+  toast(w.name+' saved to your plan. Tap Edit on it to change anything.')}
 function routineFrom(w){return{id:'r'+uid(),name:w.name,isNew:true,exercises:w.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a??'',b:x.b??''}))}))}}
 function isToday(ts){const d=new Date(ts),n=new Date();return d.toDateString()===n.toDateString()}
 /* Re-open a finished workout: mode 'edit' fixes it up, mode 'resume' carries on training (split sessions) */
@@ -593,6 +600,7 @@ $('view').addEventListener('click',e=>{
     touch();render()}
   if(act==='sound'){S.sound=!S.sound;saveProfile();render();if(S.sound)tickSound();toast(S.sound?'Tick sounds on':'Tick sounds off')}
   if(act==='finish')finishWorkout();
+  if(act==='toPlan'){saveToPlan(S.workouts.find(w=>w.id===b.dataset.id));return}
   if(act==='allPast'){showAllPast=!showAllPast;render()}
   if(act==='rNew')openRoutine({id:'r'+uid(),name:'',isNew:true,exercises:[]});
   if(act==='rEdit'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r)openRoutine(clone(r))}
@@ -602,7 +610,7 @@ $('view').addEventListener('click',e=>{
   if(act==='rDelSet'){editR.exercises[i].sets.splice(j,1);render()}
   if(act==='rRmEx'){editR.exercises.splice(i,1);render()}
   if(act==='rSave'){const n=editR.name.trim();if(!n){toast('Give this workout a name first.');const el=$('rName');if(el)el.focus();return}
-    const r={id:editR.id,name:n,exercises:editR.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
+    const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),exercises:editR.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
     const k=S.routines.findIndex(x=>x.id===r.id);if(k>-1)S.routines[k]=r;else S.routines.push(r);
     editR=null;saveProfile(true);render();window.scrollTo(0,0);toast(n+' saved to your plan')}
   if(act==='rCancel'){editR=null;render();window.scrollTo(0,0)}
@@ -691,7 +699,7 @@ $('sheet').addEventListener('click',e=>{
     touch();closeSheet();render();return}
   const act=e.target.closest('[data-sact]');if(!act)return;
   if(act.dataset.sact==='again'){closeSheet();if(S.active){toast('Finish or discard your current workout first.');return}tab='workout';startWorkout(S.workouts.find(w=>w.id===act.dataset.id))}
-  if(act.dataset.sact==='toPlan'){const w=S.workouts.find(x=>x.id===act.dataset.id);if(w){openRoutine(routineFrom(w));toast('Check it over, then Save to my plan.')}return}
+  if(act.dataset.sact==='toPlan'){saveToPlan(S.workouts.find(x=>x.id===act.dataset.id));return}
   if(act.dataset.sact==='edit'){loadWorkout(S.workouts.find(w=>w.id===act.dataset.id),'edit');return}
   if(act.dataset.sact==='cont'){loadWorkout(S.workouts.find(w=>w.id===act.dataset.id),'resume');return}
   if(act.dataset.sact==='del'){const id=act.dataset.id;askConfirm('Delete workout?','It will be removed from your history and graphs. This cannot be undone.','Delete workout',()=>{S.workouts=S.workouts.filter(w=>w.id!==id);removeWorkout(id);closeSheet();render();toast('Workout deleted')},()=>openWorkout(id))}
