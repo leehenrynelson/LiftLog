@@ -321,6 +321,10 @@ Sumo Deadlift|Glutes|Barbell
 Glute Bridge|Glutes|Bodyweight
 Cable Kickback|Glutes|Cable
 Hip Abduction (Machine)|Glutes|Machine
+Hip Abduction (Banded)|Glutes|Bodyweight
+Cable Pull-through|Glutes|Cable
+Frog Pump|Glutes|Bodyweight
+Assisted Pull-up|Back|Machine
 Standing Calf Raise|Calves|Machine
 Seated Calf Raise|Calves|Machine
 Leg Press Calf Raise|Calves|Machine
@@ -365,6 +369,12 @@ const PROGRAMS=[
  days:[['Chest & back','Bench Press (Barbell)|10|10|60\nBent Over Row (Barbell)|10|10|60\nChest Fly (Dumbbell)|3|12|60\nSingle-Arm Row (Dumbbell)|3|12|60'],
        ['Legs & abs','Back Squat|10|10|60\nLying Leg Curl|10|10|60\nStanding Calf Raise|3|15|60\nHanging Leg Raise|3|15|60'],
        ['Arms & shoulders','Tricep Dip|10|10|60\nHammer Curl|10|10|60\nLateral Raise (Dumbbell)|3|12|60\nReverse Fly (Dumbbell)|3|12|60']]},
+{id:'vol10adv',name:'10×10 Advanced',tag:'The next step after 10×10: heavier weight, 10 sets of 6, slower lowering.',level:'Advanced',goal:'Size & strength',
+ tip:'Same weight for all 10 sets of 6. Hit all 60 reps and add 2.5–5 kg next time.',
+ rules:['Do 4–6 weeks of the standard 10×10 first.','Start around 75% of your 1-rep max, a weight you could lift for about 12 reps.','10 sets of 6, same weight every set. Rest timer is set to 90 seconds.','Lower each rep over 5 seconds and lift it fast. The slow lowering is what makes this advanced.','When you get all 10×6, add 2.5–5 kg next session. If reps drop, keep the weight until you get all 60.','Run for 4–6 weeks, then go back to the standard 10×10 for a block.'],
+ days:[['Chest & back','Incline Bench Press (Barbell)|10|6|90\nChin-up|10|6|90\nIncline Bench Press (Dumbbell)|3|8|60\nChest-Supported Row|3|8|60'],
+       ['Legs & abs','Front Squat|10|6|90\nRomanian Deadlift|10|6|90\nSeated Calf Raise|3|10|60\nAb Wheel Rollout|3|10|60'],
+       ['Arms & shoulders','Close-Grip Bench Press|10|6|90\nEZ-Bar Curl|10|6|90\nArnold Press|3|8|60\nFace Pull|3|12|60']]},
 {id:'onefail',name:'One-Set Failure',tag:'High-intensity style. One all-out working set per exercise, lots of rest.',level:'Advanced',goal:'Size',
  tip:'Warm up first (no need to log it). One set to total failure, then move on.',
  rules:['Do 1–2 light warm-up sets you don’t log, then one working set taken to complete failure.','Optional: 1–2 forced reps or a slow negative at the end of the set.','Rest timer is set to 3 minutes between exercises.','Leave 4–7 days between workouts. Recovery is where you grow on this plan.','Beat your last weight or reps every session. If you can’t, rest longer.'],
@@ -405,6 +415,13 @@ const PROGRAMS=[
        ['Lower strength','Back Squat|4|5|180\nDeadlift (Barbell)|3|5|180\nLeg Press|3|12|120\nLying Leg Curl|3|8|90\nStanding Calf Raise|4|8|90'],
        ['Upper size','Incline Bench Press (Dumbbell)|4|10|90\nChest Fly (Dumbbell)|3|12|60\nSeated Cable Row|4|10|90\nSingle-Arm Row (Dumbbell)|3|12|60\nLateral Raise (Dumbbell)|3|15|60\nIncline Curl|3|12|60\nTricep Pushdown (Rope)|3|12|60'],
        ['Lower size','Front Squat|4|10|120\nBulgarian Split Squat|3|12|90\nLeg Extension|3|15|60\nSeated Leg Curl|3|15|60\nSeated Calf Raise|4|15|60']]},
+{id:'glute4',name:'Glute Builder Upper/Lower',tag:'Women’s 4-day plan: heavy and high-volume glute and leg days, plus back, shoulders and arms.',level:'All levels',goal:'Glutes & legs',
+ tip:'Heavy lifts: 2 min rest. Burnouts and finishers: short rest, go to failure on the last set.',
+ rules:['Day 1 is the heavy glute day: low reps, 2 minutes rest, add weight when you hit the top of the range.','Day 3 is the high-volume glute day: higher reps, rest-pause on the last hip thrust set, burnouts to failure.','Upper days build back, shoulders and arms without much bulk: moderate weight, 8–12 reps.','About 25 hard glute sets a week. If you’re still sore by the next lower day, drop a set of abduction or burnouts first.','Typical week: Mon, Tue, Thu, Fri. Take the last set of abductions and glute bridges to failure.'],
+ days:[['Lower: heavy glutes','Hip Thrust (Barbell)|5|8|120\nRomanian Deadlift|4|10|120\nBulgarian Split Squat|3|10|90\nCable Kickback|3|15|60\nHip Abduction (Machine)|4|20|45'],
+       ['Upper: back & arms','Lat Pulldown|4|10|90\nSeated Cable Row|3|12|90\nSeated Shoulder Press (Dumbbell)|3|10|90\nBicep Curl (Dumbbell)|3|12|45\nTricep Pushdown (Rope)|3|12|45'],
+       ['Lower: glute volume','Hip Thrust (Barbell)|4|12|90\nLeg Press|3|10|90\nWalking Lunge|3|12|90\nBack Extension|3|15|60\nLying Leg Curl|3|12|60\nGlute Bridge|2|20|45'],
+       ['Upper + glute finisher','Assisted Pull-up|3|8|90\nSingle-Arm Row (Dumbbell)|3|10|60\nLateral Raise (Dumbbell)|3|15|45\nCable Pull-through|3|15|45\nHip Abduction (Banded)|3|20|30\nFrog Pump|3|25|30']]},
 {id:'classic6',name:'Classic 6-Day Split',tag:'Old-school bodybuilding: each muscle twice a week, 6 days on.',level:'Advanced',goal:'Size',
  tip:'Run the 3 days twice a week, then rest a day. High volume, keep rest under 90s.',
  rules:['Run Day 1, 2, 3 then repeat: 6 training days, 1 rest day.','Moderate weights, 8–12 reps, 60–90 seconds rest.','Big volume, so eat and sleep well. Drop a set from each exercise if you are not recovering.'],
