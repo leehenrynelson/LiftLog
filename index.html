@@ -169,7 +169,7 @@ h3{font-size:1.2rem;margin:0}
 .plan-card .t{font-weight:700;font-size:1.05rem}
 .plan-card .s{font-size:.85rem;color:var(--muted);margin-top:2px}
 .plan-card .done-tag{font-size:.75rem;font-weight:700;color:var(--green);white-space:nowrap}
-.plan-card .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.plan-card .btns{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px;margin-top:10px}
 .mv{display:flex;gap:4px}.mv button{border:1px solid var(--line);background:var(--bg);border-radius:8px;width:32px;height:30px;cursor:pointer;color:var(--muted);font-weight:700}
 .plan-card .btn:disabled{opacity:.55;cursor:default}
 .mv button:disabled{opacity:.35;cursor:default}
@@ -191,6 +191,14 @@ h3{font-size:1.2rem;margin:0}
 .rest-tag{display:inline-block;margin-left:8px;font-size:.72rem;font-weight:700;color:var(--accent);background:var(--soft);border-radius:6px;padding:2px 6px;vertical-align:middle}
 .ex-rest{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:.82rem;color:var(--muted);margin:-2px 0 8px}
 .ex-rest select{padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+.plan-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.link-btn{border:0;background:transparent;color:var(--accent);font-weight:600;font-size:.88rem;cursor:pointer;padding:6px 2px}
+.paste-link{display:block;margin:10px auto 0;font-size:.85rem}
+.ex-note{display:block;width:100%;box-sizing:border-box;resize:none;font:inherit;font-size:16px;line-height:1.35;color:var(--ink);background:var(--bg);border:1px solid transparent;border-radius:10px;padding:8px 10px;margin:0 0 10px;overflow:hidden}
+.ex-note:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.ex-note::placeholder{color:var(--muted)}
+.note-last{font-size:.82rem;color:var(--muted);margin:-2px 0 6px}
+.note-hist{font-size:.88rem;color:var(--muted);font-style:italic;margin:-2px 0 4px;white-space:pre-wrap}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.92rem;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .hidden{display:none!important}
 .splash{position:fixed;inset:0;z-index:100;background:#FFFFFF;color:#0D121C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);transition:opacity .35s ease,visibility .35s}
@@ -582,15 +590,72 @@ function viewStart(){
   :`<p class="empty">Start a workout, add exercises from the list, and tick off each set as you go. Everything you log shows up in History and Progress.</p>`}`}
 /* ================= My plan (workouts saved without starting them) ================= */
 function planHTML(){const wk=weekStart(Date.now()),R=S.routines;
-  return`<h2>My plan</h2>${R.length?R.map((r,k)=>{const done=S.workouts.some(w=>w.routine===r.id&&w.start>=wk);
+  return`<div class="plan-h"><h2>My plan</h2>${R.length>1?'<button class="link-btn" data-act="shareAll">Share whole plan</button>':''}</div>${R.length?R.map((r,k)=>{const done=S.workouts.some(w=>w.routine===r.id&&w.start>=wk);
     const names=r.exercises.map(e=>e.name);
     return`<div class="plan-card"><div class="top-r"><span style="min-width:0"><span class="t">${esc(r.name)}</span>
     <div class="s">${names.length?esc(names.slice(0,4).join(', '))+(names.length>4?` and ${names.length-4} more`:''):'No exercises yet'}</div></span>
     <span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${done?'<span class="done-tag">✓ Done this week</span>':''}
     <span class="mv"><button data-act="rUp" data-k="${k}" ${k===0?'disabled':''} aria-label="Move up">↑</button><button data-act="rDown" data-k="${k}" ${k===R.length-1?'disabled':''} aria-label="Move down">↓</button></span></span></div>
-    <div class="btns"><button class="btn sm" data-act="rEdit" data-id="${r.id}">Edit</button><button class="btn sm primary" data-act="rStart" data-id="${r.id}" ${r.exercises.length?'':'disabled'}>Start</button></div></div>`}).join('')
+    <div class="btns"><button class="btn sm" data-act="rEdit" data-id="${r.id}">Edit</button><button class="btn sm" data-act="rShare" data-id="${r.id}" ${r.exercises.length?'':'disabled'}>Share</button><button class="btn sm primary" data-act="rStart" data-id="${r.id}" ${r.exercises.length?'':'disabled'}>Start</button></div></div>`}).join('')
   :'<p class="muted small" style="margin:0 2px 10px">Set up your week here, like Day 1 Chest and triceps, Day 2 Back and biceps. Add exercises now and start each one when you get to the gym.</p>'}
-  <div class="btn-grid"><button class="btn" data-act="rNew">Create a workout</button><button class="btn" data-act="progs">Browse programs</button></div>`}
+  <div class="btn-grid"><button class="btn" data-act="rNew">Create a workout</button><button class="btn" data-act="progs">Browse programs</button></div>
+  <button class="link-btn paste-link" data-act="pastePlan">Got a plan link from a friend? Paste it here</button>`}
+/* ================= Share a plan =================
+   The whole plan travels inside the link (after #plan=), so there is no server and nothing to sign up for.
+   Target reps, rest timers and plan notes are shared. Your own weights are left out, because they won't suit someone else. */
+const b64u={enc:bytes=>{let s='';bytes.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
+  dec:str=>{const s=atob(str.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(s,c=>c.charCodeAt(0))}};
+async function zip(bytes,dir){const S2=dir==='in'?CompressionStream:DecompressionStream;
+  const st=new Blob([bytes]).stream().pipeThrough(new S2('deflate-raw'));return new Uint8Array(await new Response(st).arrayBuffer())}
+async function encodePlan(routines,title){
+  const names=new Set(LIB.map(e=>e.name));const custom=[];
+  const r=routines.map(x=>[x.name,x.tip||'',x.exercises.map(e=>{if(!names.has(e.name)){const c=S.custom.find(c=>c.name===e.name);if(c&&!custom.some(k=>k[0]===c.name))custom.push([c.name,c.muscle,c.type])}
+    return[e.name,e.rest??null,e.note||'',e.sets.map(s=>s.b??'')]})]);
+  const raw=new TextEncoder().encode(JSON.stringify({v:1,t:title,r,c:custom}));
+  if(window.CompressionStream){try{return'z'+b64u.enc(await zip(raw,'in'))}catch(_){}}
+  return'j'+b64u.enc(raw)}
+async function decodePlan(code){
+  const kind=code[0],bytes=b64u.dec(code.slice(1));
+  const raw=kind==='z'?await zip(bytes,'out'):bytes;
+  const d=JSON.parse(new TextDecoder().decode(raw));
+  /* Links come from other people, so everything is checked and trimmed before it touches your plan */
+  const str=(v,n)=>String(v??'').slice(0,n);
+  if(!d||!Array.isArray(d.r)||!d.r.length)throw 0;
+  const custom=(Array.isArray(d.c)?d.c:[]).slice(0,40).map(([n,m,t])=>({name:str(n,60).trim(),muscle:[...MUSCLES,'Other'].includes(m)?m:'Other',equip:'Custom',type:FIELDS[t]?t:'w'})).filter(c=>c.name);
+  const routines=d.r.slice(0,20).map(([name,tip,ex])=>({name:str(name,60).trim()||'Shared workout',tip:str(tip,200),
+    exercises:(Array.isArray(ex)?ex:[]).slice(0,30).map(([n,rest,note,sets])=>{const e={name:str(n,60).trim(),sets:(Array.isArray(sets)?sets:[]).slice(0,30).map(b=>({a:'',b:str(b,8)}))};
+      const rs=Number(rest);if(rest!=null&&rest!==''&&rs>=0&&rs<=900)e.rest=Math.round(rs);if(note)e.note=str(note,NOTE_MAX);if(!e.sets.length)e.sets=[{a:'',b:''}];return e}).filter(e=>e.name)})).filter(r=>r.exercises.length);
+  if(!routines.length)throw 0;
+  return{title:str(d.t,60),routines,custom}}
+const planLink=code=>location.origin+location.pathname+'#plan='+code;
+async function sharePlan(routines,title){
+  let url;try{url=planLink(await encodePlan(routines,title))}catch(_){toast('Could not make a link for this plan.');return}
+  const text=routines.length>1?`My ${routines.length}-day training plan on Lift Log. Tap to add it to yours:`:`${routines[0].name} on Lift Log. Tap to add it to your plan:`;
+  if(navigator.share){try{await navigator.share({title:title||'Lift Log plan',text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('Link copied. Paste it in a message to share.');return}catch(_){}
+  openSheet('Share plan',`<p class="muted small" style="margin-top:0">Copy this link and send it to a friend.</p><textarea class="ex-note" rows="4" readonly onfocus="this.select()">${esc(url)}</textarea>`)}
+let incoming=null;
+async function receivePlan(code){
+  try{incoming=await decodePlan(code)}catch(_){incoming=null;toast('That plan link didn’t work. Ask your friend to send it again.');return false}
+  const P=incoming;
+  openSheet('Shared plan',`<p style="margin:0 0 4px">Someone shared ${P.routines.length>1?`a ${P.routines.length}-workout plan`:'a workout'} with you${P.title?`: <b>${esc(P.title)}</b>`:''}.</p>
+  <p class="muted small" style="margin:0 0 12px">Add it and it goes into My plan. Fill in your own weights as you go.</p>
+  ${P.routines.map(r=>`<h3 class="prog-h">${esc(r.name)}</h3>${r.tip?`<p class="muted small" style="margin:0 0 6px">${esc(r.tip)}</p>`:''}<div class="panel prog-day">${r.exercises.map(e=>`<div class="prog-ex"><span>${esc(e.name)}${e.note?`<br><span class="muted small">${esc(e.note)}</span>`:''}</span><span class="muted">${e.sets.length}${e.sets[0].b?'×'+esc(e.sets[0].b):' sets'}${e.rest!=null?` · ${restLabel(e.rest)}`:''}</span></div>`).join('')}</div>`).join('')}`,
+  `<div class="btn-grid"><button class="btn" data-close>Not now</button><button class="btn primary" data-sact="planIn">Add to my plan</button></div>`);
+  return true}
+function acceptPlan(){const P=incoming;if(!P)return;incoming=null;
+  P.custom.forEach(c=>{if(!allEx().some(e=>e.name.toLowerCase()===c.name.toLowerCase()))S.custom.push(c)});
+  P.routines.forEach(r=>S.routines.push({id:'r'+uid(),name:r.name,...(r.tip?{tip:r.tip}:{}),exercises:r.exercises}));
+  saveProfile(true);closeSheet();editR=null;tab='workout';render();window.scrollTo(0,0);
+  toast(P.routines.length>1?`${P.routines.length} workouts added to your plan`:P.routines[0].name+' added to your plan')}
+function openPaste(){
+  openSheet('Add a shared plan',`<p class="muted small" style="margin-top:0">Paste the link your friend sent you.</p><textarea class="ex-note" id="pasteBox" rows="4" placeholder="https://…#plan=…"></textarea>`,
+  `<button class="btn primary block" data-sact="pasteGo">Open plan</button>`);setTimeout(()=>{const b=$('pasteBox');if(b)b.focus()},250)}
+function codeFrom(text){const m=String(text||'').match(/#plan=([A-Za-z0-9_-]+)/);return m?m[1]:null}
+function checkHash(){const code=codeFrom(location.hash);if(!code)return;
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}
+  receivePlan(code)}
+window.addEventListener('hashchange',checkHash);
 /* ================= Programs: browse and add to plan ================= */
 const progDays=p=>p.days.length+' day'+(p.days.length>1?'s':'');
 const progAdded=p=>S.routines.some(r=>r.prog===p.id);
@@ -615,6 +680,7 @@ function viewRoutine(){const r=editR;
   <p class="muted small" style="margin:-4px 0 12px">Add your exercises, sets and target weights. Nothing is logged until you start it.</p>
   ${r.exercises.map((e,i)=>{const[fa,fb]=FIELDS[exInfo(e.name).type];return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}</h3><button class="x" data-act="rRmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
     <label class="ex-rest">Rest timer <select data-rrest="${i}">${restOpts(e.rest)}</select></label>
+    ${noteBox(e.note,`data-rnote="${i}"`,'Notes, e.g. seat on 4, slow on the way down')}
     <div class="r-head"><span>Set</span><span>${fa}</span><span>${fb}</span><span></span></div>
     ${e.sets.map((x,j)=>`<div class="r-row"><span class="setno">${j+1}</span><input inputmode="decimal" data-ri="${i}" data-rj="${j}" data-rf="a" value="${esc(x.a??'')}" placeholder="optional" aria-label="${fa} set ${j+1}"><input inputmode="decimal" data-ri="${i}" data-rj="${j}" data-rf="b" value="${esc(x.b??'')}" placeholder="optional" aria-label="${fb} set ${j+1}"><button class="x" data-act="rDelSet" data-i="${i}" data-j="${j}" aria-label="Delete set ${j+1}">×</button></div>`).join('')}
     <button class="addset" data-act="rAddSet" data-i="${i}">Add set</button></div>`}).join('')||'<p class="empty">No exercises yet.</p>'}
@@ -632,13 +698,13 @@ function isToday(ts){const d=new Date(ts),n=new Date();return d.toDateString()==
 function loadWorkout(w,mode){if(!w)return;
   if(S.active){toast('Finish or discard your current workout first.');return}
   S.active={id:w.id,name:w.name,routine:w.routine,start:Date.now(),updated:Date.now(),mode,orig:{start:w.start,end:w.end},
-    exercises:w.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a??'',b:x.b??'',done:true}))}))};
+    exercises:w.exercises.map(e=>({name:e.name,...(e.note?{note:e.note}:{}),sets:e.sets.map(x=>({a:x.a??'',b:x.b??'',done:true}))}))};
   tab='workout';saveProfile(true);closeSheet();render();window.scrollTo(0,0);
   toast(mode==='edit'?'Editing. Change anything, then Save changes.':'Carry on where you left off.')}
 function startWorkout(from,rid){
   const h=new Date().getHours();
   S.active={id:uid(),name:from?from.name:(h<12?'Morning workout':h<17?'Afternoon workout':'Evening workout'),start:Date.now(),updated:Date.now(),
-    exercises:from?from.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),sets:e.sets.map(s=>({a:s.a??'',b:s.b??'',done:false}))})):[]};
+    exercises:from?from.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),...(e.note?{note:e.note}:{}),sets:e.sets.map(s=>({a:s.a??'',b:s.b??'',done:false}))})):[]};
   if(rid)S.active.routine=rid;
   if(from&&from.tip)S.active.tip=from.tip;
   saveProfile(true);render();window.scrollTo(0,0);
@@ -660,6 +726,8 @@ function viewActive(){
 function exCard(e,i){
   const info=exInfo(e.name),[fa,fb]=FIELDS[info.type],prev=prevSets(e.name,S.active.id)||[],best=histBest(e.name);
   return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}${e.rest!=null?`<span class="rest-tag">${restLabel(e.rest)}</span>`:''}</h3><button class="x" data-act="rmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
+  ${(()=>{const last=lastNote(e.name,S.active.id);return last&&last!==(e.note||'').trim()?`<p class="note-last"><b>Last time:</b> ${esc(last)}</p>`:''})()}
+  ${noteBox(e.note,`data-note="${i}"`,'Add a note: seat height, grip, how it felt')}
   <div class="set-head"><span>Set</span><span>Previous</span><span>${fa}</span><span>${fb}</span><span></span></div>
   ${e.sets.map((s,j)=>`<div class="set-row ${s.done?'done':''}"><button class="set-del" data-act="delSet" data-i="${i}" data-j="${j}" tabindex="-1">Delete</button>
   <div class="set-fg" data-i="${i}" data-j="${j}"><span class="setno">${j+1}${s.done&&setPR(e,j,best)?'<span class="prb">PR</span>':''}</span><span class="prev">${prev[j]?esc(fmtSet(prev[j],info.type)):'–'}</span>
@@ -669,6 +737,13 @@ function exCard(e,i){
   <button class="addset" data-act="addSet" data-i="${i}">Add set</button></div>`}
 
 function touch(){S.active.updated=Date.now();saveProfile()}
+/* ================= Exercise notes ================= */
+const NOTE_MAX=500;
+function noteBox(v,attr,ph){v=v||'';const rows=Math.min(6,Math.max(1,v.split('\n').length,Math.ceil(v.length/38)));
+  return`<textarea class="ex-note" ${attr} rows="${rows}" maxlength="${NOTE_MAX}" placeholder="${esc(ph)}" aria-label="Exercise notes">${esc(v)}</textarea>`}
+function growNote(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+/* The most recent note you left on this exercise in a finished workout */
+function lastNote(name,skipId){for(const w of sorted()){if(w.id===skipId)continue;const e=w.exercises.find(x=>x.name===name&&x.note);if(e)return e.note}return''}
 /* Set PRs: beats your heaviest weight, or best single-set volume (kg x reps), from past workouts and earlier sets today */
 function histBest(name){let heavy=0,vol=0,any=false;
   S.workouts.forEach(w=>{if(S.active&&w.id===S.active.id)return;w.exercises.forEach(e=>{if(e.name!==name)return;any=true;e.sets.forEach(s=>{const a=num(s.a)||0,b=num(s.b)||0;heavy=Math.max(heavy,a);vol=Math.max(vol,a*b)})})});
@@ -695,6 +770,8 @@ const prSound=()=>beep([[784,0.12],[988,0.12],[1319,0.3]]);
 $('view').addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='rName'&&editR){editR.name=t.value;return}
+  if(t.dataset.rnote!=null&&editR){editR.exercises[+t.dataset.rnote].note=t.value;growNote(t);return}
+  if(t.dataset.note!=null&&S.active){S.active.exercises[+t.dataset.note].note=t.value;growNote(t);touch();return}
   if(t.dataset.rf&&editR){editR.exercises[+t.dataset.ri].sets[+t.dataset.rj][t.dataset.rf]=t.value.replace(',','.');return}
   if(t.id==='wkName'&&S.active){S.active.name=t.value;touch();return}
   if(t.dataset.f&&S.active){const s=S.active.exercises[+t.dataset.i].sets[+t.dataset.j];s[t.dataset.f]=t.value.replace(',','.');touch()}
@@ -735,6 +812,9 @@ $('view').addEventListener('click',e=>{
   if(act==='toPlan'){saveToPlan(S.workouts.find(w=>w.id===b.dataset.id));return}
   if(act==='allPast'){showAllPast=!showAllPast;render()}
   if(act==='progs')openPrograms();
+  if(act==='rShare'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r)sharePlan([r],r.name)}
+  if(act==='shareAll')sharePlan(S.routines.filter(r=>r.exercises.length),'');
+  if(act==='pastePlan')openPaste();
   if(act==='rNew')openRoutine({id:'r'+uid(),name:'',isNew:true,exercises:[]});
   if(act==='rEdit'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r)openRoutine(clone(r))}
   if(act==='rStart'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r){startWorkout(r,r.id);toast(r.name+' started')}}
@@ -743,7 +823,7 @@ $('view').addEventListener('click',e=>{
   if(act==='rDelSet'){editR.exercises[i].sets.splice(j,1);render()}
   if(act==='rRmEx'){editR.exercises.splice(i,1);render()}
   if(act==='rSave'){const n=editR.name.trim();if(!n){toast('Give this workout a name first.');const el=$('rName');if(el)el.focus();return}
-    const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),...(editR.prog?{prog:editR.prog,tip:editR.tip}:{}),exercises:editR.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
+    const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),...(editR.prog?{prog:editR.prog,tip:editR.tip}:{}),exercises:editR.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),...(e.note&&e.note.trim()?{note:e.note.trim()}:{}),sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
     const k=S.routines.findIndex(x=>x.id===r.id);if(k>-1)S.routines[k]=r;else S.routines.push(r);
     editR=null;saveProfile(true);render();window.scrollTo(0,0);toast(n+' saved to your plan')}
   if(act==='rCancel'){editR=null;render();window.scrollTo(0,0)}
@@ -843,6 +923,8 @@ $('sheet').addEventListener('click',e=>{
   if(act.dataset.sact==='prog'){openProgram(act.dataset.id);$('sheetScroll').scrollTop=0}
   if(act.dataset.sact==='progAdd')addProgram(act.dataset.id);
   if(act.dataset.sact==='progRm')removeProgram(act.dataset.id);
+  if(act.dataset.sact==='planIn')acceptPlan();
+  if(act.dataset.sact==='pasteGo'){const code=codeFrom($('pasteBox').value);if(!code){toast('That doesn’t look like a Lift Log plan link.');return}receivePlan(code)}
   if(act.dataset.sact==='saveCustom')saveCustom();
   if(act.dataset.sact==='backPick')openPicker(true);
   if(act.dataset.sact==='progress'){progEx=act.dataset.name;progMetric=0;tab='progress';closeSheet();render();window.scrollTo(0,0)}
@@ -851,7 +933,7 @@ $('sheet').addEventListener('click',e=>{
 /* ================= Finish & PRs ================= */
 function finishWorkout(){
   const a=S.active;
-  const exercises=a.exercises.map(e=>({name:e.name,sets:e.sets.filter(s=>s.done).map(s=>({a:s.a===''?null:num(s.a),b:s.b===''?null:num(s.b)}))})).filter(e=>e.sets.length);
+  const exercises=a.exercises.map(e=>({name:e.name,...(e.note&&e.note.trim()?{note:e.note.trim()}:{}),sets:e.sets.filter(s=>s.done).map(s=>({a:s.a===''?null:num(s.a),b:s.b===''?null:num(s.b)}))})).filter(e=>e.sets.length);
   if(!exercises.length){toast(a.mode?'Tick at least one set, or delete the workout from History.':'Tick at least one set as done before finishing.');return}
   const w={id:a.id,name:a.name.trim()||'Workout',start:a.start,end:Date.now(),exercises};if(a.routine)w.routine=a.routine;
   if(a.mode){w.start=a.orig.start;w.end=a.mode==='edit'?a.orig.end:a.orig.end+(Date.now()-a.start)}
@@ -896,7 +978,7 @@ function viewHistory(){
   return out}
 function openWorkout(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;
   openSheet(`<input class="wk-name" id="histName" data-id="${w.id}" value="${esc(w.name)}" maxlength="60" aria-label="Workout name" enterkeyhint="done">`,`<p class="muted small" style="margin:0 0 8px">Tap the name to rename this workout.</p><p class="muted" style="margin-top:0">${fmtDate(w.start,true)}<br>${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))} volume</p>
-  ${w.exercises.map(e=>{const t=exInfo(e.name).type;return`<h3>${esc(e.name)}</h3><div class="hist-sets">${e.sets.map((s,j)=>`<div>${j+1}. ${esc(fmtSet(s,t))}</div>`).join('')}</div>`}).join('')}`,
+  ${w.exercises.map(e=>{const t=exInfo(e.name).type;return`<h3>${esc(e.name)}</h3>${e.note?`<p class="note-hist">${esc(e.note)}</p>`:''}<div class="hist-sets">${e.sets.map((s,j)=>`<div>${j+1}. ${esc(fmtSet(s,t))}</div>`).join('')}</div>`}).join('')}`,
   `<div class="btn-grid">${isToday(w.start)?`<button class="btn primary" data-sact="cont" data-id="${w.id}" style="grid-column:1/-1">Continue this workout</button>`:''}<button class="btn" data-sact="edit" data-id="${w.id}">Edit</button><button class="btn" data-sact="again" data-id="${w.id}">Do again</button><button class="btn" data-sact="toPlan" data-id="${w.id}">Add to my plan</button><button class="btn danger" data-sact="del" data-id="${w.id}">Delete</button></div>`)}
 
 /* ================= Progress ================= */
@@ -975,6 +1057,7 @@ if(S.active)tab='workout';
   setTimeout(hide,reduce?700:1700);sp.addEventListener('click',hide)})();
 render();
 connect();
+setTimeout(checkHash,1800);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 </body>
