@@ -177,6 +177,20 @@ h3{font-size:1.2rem;margin:0}
 .r-head{font-size:.78rem;color:var(--muted);font-weight:600;padding:0 2px 4px}
 .r-row{margin:4px 0}
 .r-row input{width:100%;text-align:center;padding:8px 4px;border-radius:9px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:1rem}
+.prog-row{align-items:flex-start;text-align:left}
+.prog-row .s{display:inline-block;margin-top:2px}
+.prog-meta{font-size:.78rem;font-weight:600;color:var(--accent)}
+.prog-h{font-size:1rem;margin:16px 0 6px}
+.prog-rules{margin:0;padding-left:20px;font-size:.92rem;line-height:1.45}
+.prog-rules li{margin:3px 0}
+.prog-day{padding:6px 12px}
+.prog-ex{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.prog-ex:last-child{border-bottom:0}
+.prog-ex .muted{white-space:nowrap;font-variant-numeric:tabular-nums}
+.prog-tip{background:var(--soft);color:var(--ink);border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:.9rem;font-weight:600}
+.rest-tag{display:inline-block;margin-left:8px;font-size:.72rem;font-weight:700;color:var(--accent);background:var(--soft);border-radius:6px;padding:2px 6px;vertical-align:middle}
+.ex-rest{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:.82rem;color:var(--muted);margin:-2px 0 8px}
+.ex-rest select{padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.92rem;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .hidden{display:none!important}
 .splash{position:fixed;inset:0;z-index:100;background:#FFFFFF;color:#0D121C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);transition:opacity .35s ease,visibility .35s}
@@ -341,6 +355,77 @@ function typeOf(n,m,e){if(m==='Cardio')return'cardio';if(/Plank/.test(n))return'
 const LIB=EX_RAW.trim().split('\n').map(l=>{const[name,muscle,equip]=l.split('|');return{name,muscle,equip,type:typeOf(name,muscle,equip)}});
 const FIELDS={w:['kg','Reps'],bw:['+kg','Reps'],cardio:['km','Min'],time:['+kg','Sec']};
 
+/* ================= Programs library =================
+   Well-known training methods under our own names. Each exercise line is
+   Exercise|sets|target reps|rest seconds (rest is optional). */
+const PROGRAMS=[
+{id:'vol10',name:'10×10 Volume',tag:'German-volume style. 10 sets of 10 on one big lift per muscle.',level:'Intermediate',goal:'Size',
+ tip:'Same weight for all 10 sets. Hit all 100 reps and add 2.5–5 kg next time.',
+ rules:['Start around 60% of your 1-rep max, a weight you could lift for about 20 reps.','Keep the same weight for all 10 sets. Rest timer is set to 60 seconds.','When you complete all 10×10, add 2.5–5 kg next session. If reps drop, keep the weight until you get all 100.','Slow lowering, about 4 seconds down.','Run it for 4–6 weeks, then switch to something heavier.'],
+ days:[['Chest & back','Bench Press (Barbell)|10|10|60\nBent Over Row (Barbell)|10|10|60\nChest Fly (Dumbbell)|3|12|60\nSingle-Arm Row (Dumbbell)|3|12|60'],
+       ['Legs & abs','Back Squat|10|10|60\nLying Leg Curl|10|10|60\nStanding Calf Raise|3|15|60\nHanging Leg Raise|3|15|60'],
+       ['Arms & shoulders','Tricep Dip|10|10|60\nHammer Curl|10|10|60\nLateral Raise (Dumbbell)|3|12|60\nReverse Fly (Dumbbell)|3|12|60']]},
+{id:'onefail',name:'One-Set Failure',tag:'High-intensity style. One all-out working set per exercise, lots of rest.',level:'Advanced',goal:'Size',
+ tip:'Warm up first (no need to log it). One set to total failure, then move on.',
+ rules:['Do 1–2 light warm-up sets you don’t log, then one working set taken to complete failure.','Optional: 1–2 forced reps or a slow negative at the end of the set.','Rest timer is set to 3 minutes between exercises.','Leave 4–7 days between workouts. Recovery is where you grow on this plan.','Beat your last weight or reps every session. If you can’t, rest longer.'],
+ days:[['Chest & back','Pec Deck|1|8|180\nIncline Bench Press (Barbell)|1|6|180\nStraight-Arm Pulldown|1|8|180\nClose-Grip Lat Pulldown|1|8|180\nDeadlift (Barbell)|1|6|180'],
+       ['Legs','Leg Extension|1|12|180\nLeg Press|1|10|180\nLying Leg Curl|1|8|180\nStanding Calf Raise|1|15|180'],
+       ['Shoulders & arms','Lateral Raise (Dumbbell)|1|8|180\nReverse Fly (Dumbbell)|1|8|180\nBicep Curl (Barbell)|1|8|180\nTricep Pushdown (Bar)|1|8|180\nTricep Dip|1|8|180']]},
+{id:'fin7',name:'7-Set Finisher',tag:'Normal sets first, then 7 quick sets on one exercise to pump the muscle.',level:'Intermediate',goal:'Size',
+ tip:'Main lifts: 90s rest. The 7-set finisher: 40s rest, keep the weight the same.',
+ rules:['Train the main lifts as normal, 90 seconds rest.','Finish each muscle with 7 sets of 10–12 on one isolation exercise. The timer drops to 40 seconds for those.','Keep the same weight across all 7 sets if you can. Squeeze and stretch the muscle between sets.','Drink water through the finisher. It is about the pump, not max weight.','Run the 5 days in order, then rest 1–2 days.'],
+ days:[['Chest','Incline Bench Press (Dumbbell)|4|10|90\nBench Press (Barbell)|4|8|90\nChest Dip|3|10|90\nCable Crossover|7|12|40'],
+       ['Back','Pull-up|4|8|90\nBent Over Row (Barbell)|4|8|90\nSeated Cable Row|3|10|90\nStraight-Arm Pulldown|7|12|40'],
+       ['Legs','Leg Extension|3|15|90\nBack Squat|4|8|120\nRomanian Deadlift|3|10|90\nLying Leg Curl|3|12|90\nLeg Press|7|12|40'],
+       ['Shoulders','Seated Shoulder Press (Dumbbell)|4|10|90\nLateral Raise (Dumbbell)|3|12|90\nReverse Fly (Dumbbell)|3|12|90\nCable Lateral Raise|7|12|40'],
+       ['Arms','EZ-Bar Curl|3|10|90\nHammer Curl|3|10|90\nPreacher Curl|7|12|40\nClose-Grip Bench Press|3|10|90\nSkull Crusher|3|10|90\nTricep Pushdown (Rope)|7|12|40']]},
+{id:'cycle3',name:'3-Week Rep Cycle',tag:'Changes the rep range every week: heavy, mixed, then very high reps.',level:'Intermediate',goal:'Size',
+ tip:'Week 1: 6–10 reps heavy. Week 2: 8–15. Week 3: 20–30, short rest. Then repeat.',
+ rules:['Week 1 (heavy): 6–10 reps, 2 minutes rest. The targets in the app start here.','Week 2 (mixed): 8–15 reps, about 90 seconds rest. Change the reps and drop the weight.','Week 3 (burn): 20–30 reps, 45–60 seconds rest, add drop sets on the last set.','Then go back to week 1 and try to beat your week 1 weights.','Run the 3 days each week with a rest day between.'],
+ days:[['Chest & back','Incline Bench Press (Barbell)|4|8|120\nBench Press (Dumbbell)|3|10|120\nBent Over Row (Barbell)|4|8|120\nLat Pulldown|3|10|120'],
+       ['Legs','Back Squat|4|8|120\nLeg Press|3|10|120\nRomanian Deadlift|3|8|120\nLying Leg Curl|3|10|90\nStanding Calf Raise|4|10|90'],
+       ['Shoulders & arms','Overhead Press (Barbell)|4|8|120\nLateral Raise (Dumbbell)|3|10|90\nEZ-Bar Curl|3|8|90\nSkull Crusher|3|8|90']]},
+{id:'restpause',name:'Rest-Pause 2-Way Split',tag:'One heavy rest-pause set per exercise, with very short breaths between mini-sets.',level:'Advanced',goal:'Size & strength',
+ tip:'Each exercise is one rest-pause set: go to failure, 15 deep breaths, go again, twice more.',
+ rules:['Each exercise is logged as 3 mini-sets: failure (about 8 reps), 15 seconds rest, failure again, 15 seconds, failure again.','Aim for 11–15 reps in total across the 3 mini-sets. When you pass 15, add weight.','The rest timer is set to 15 seconds for those mini-sets.','Alternate Day A and Day B, 3 days a week (A, B, A, then B, A, B).','Squats get one heavy set then a 20-rep set instead of rest-pause.'],
+ days:[['Day A: chest, shoulders, triceps, back','Incline Bench Press (Barbell)|3|8|15\nShoulder Press (Machine)|3|8|15\nClose-Grip Bench Press|3|8|15\nLat Pulldown|3|8|15\nRack Pull|2|8|120'],
+       ['Day B: biceps, forearms, calves, hamstrings, quads','Preacher Curl|3|8|15\nHammer Curl|3|8|15\nStanding Calf Raise|3|10|15\nLying Leg Curl|3|8|15\nBack Squat|2|8|180\nBack Squat|1|20|0']]},
+{id:'phat',name:'Power + Hypertrophy 5-Day',tag:'Two heavy strength days, then three bodybuilding days.',level:'Intermediate',goal:'Strength & size',
+ tip:'Power days: heavy 3–5 reps, long rest. Size days: 8–15 reps, shorter rest.',
+ rules:['Days 1–2 are power days: heavy 3–5 reps on the main lifts, 3 minutes rest.','Days 3–5 are size days: 8–15 reps, 60–90 seconds rest.','Add weight on the power lifts whenever you hit the top of the rep range.','Typical week: Mon, Tue, rest, Thu, Fri, Sat.'],
+ days:[['Upper power','Bent Over Row (Barbell)|3|5|180\nPull-up|2|8|120\nBench Press (Barbell)|3|5|180\nSeated Shoulder Press (Dumbbell)|3|8|120\nBicep Curl (Barbell)|3|8|90\nSkull Crusher|3|8|90'],
+       ['Lower power','Back Squat|3|5|180\nHack Squat|2|8|120\nLeg Extension|2|10|90\nStiff-Leg Deadlift|3|6|120\nLying Leg Curl|2|8|90\nStanding Calf Raise|3|8|90'],
+       ['Back & shoulders size','Bent Over Row (Barbell)|6|3|90\nSeated Cable Row|3|10|90\nLat Pulldown|3|12|90\nSingle-Arm Row (Dumbbell)|2|15|60\nSeated Shoulder Press (Dumbbell)|3|10|90\nLateral Raise (Dumbbell)|3|15|60'],
+       ['Legs size','Back Squat|6|3|90\nHack Squat|3|10|90\nLeg Press|2|15|90\nLeg Extension|3|15|60\nRomanian Deadlift|3|10|90\nLying Leg Curl|2|15|60\nSeated Calf Raise|4|15|60'],
+       ['Chest & arms size','Bench Press (Dumbbell)|6|3|90\nIncline Bench Press (Dumbbell)|3|10|90\nCable Crossover|2|15|60\nPreacher Curl|3|10|60\nCable Curl|2|15|60\nOverhead Tricep Extension|3|10|60\nTricep Pushdown (Rope)|2|15|60']]},
+{id:'ul4',name:'Upper/Lower Strength & Size',tag:'4 days: one heavy and one higher-rep session for upper and lower body.',level:'Beginner to intermediate',goal:'Strength & size',
+ tip:'Strength days: 3–5 reps, add weight when you hit 5. Size days: 8–12 reps.',
+ rules:['Strength days: 3–5 reps on the first two lifts, 3 minutes rest. Add weight when you hit 5 reps on every set.','Size days: 8–12 reps, 60–90 seconds rest.','Typical week: Mon upper, Tue lower, Thu upper, Fri lower.'],
+ days:[['Upper strength','Bench Press (Barbell)|4|5|180\nBent Over Row (Barbell)|4|5|180\nOverhead Press (Barbell)|3|8|120\nLat Pulldown|3|10|90\nBicep Curl (Barbell)|3|8|90\nSkull Crusher|3|8|90'],
+       ['Lower strength','Back Squat|4|5|180\nDeadlift (Barbell)|3|5|180\nLeg Press|3|12|120\nLying Leg Curl|3|8|90\nStanding Calf Raise|4|8|90'],
+       ['Upper size','Incline Bench Press (Dumbbell)|4|10|90\nChest Fly (Dumbbell)|3|12|60\nSeated Cable Row|4|10|90\nSingle-Arm Row (Dumbbell)|3|12|60\nLateral Raise (Dumbbell)|3|15|60\nIncline Curl|3|12|60\nTricep Pushdown (Rope)|3|12|60'],
+       ['Lower size','Front Squat|4|10|120\nBulgarian Split Squat|3|12|90\nLeg Extension|3|15|60\nSeated Leg Curl|3|15|60\nSeated Calf Raise|4|15|60']]},
+{id:'classic6',name:'Classic 6-Day Split',tag:'Old-school bodybuilding: each muscle twice a week, 6 days on.',level:'Advanced',goal:'Size',
+ tip:'Run the 3 days twice a week, then rest a day. High volume, keep rest under 90s.',
+ rules:['Run Day 1, 2, 3 then repeat: 6 training days, 1 rest day.','Moderate weights, 8–12 reps, 60–90 seconds rest.','Big volume, so eat and sleep well. Drop a set from each exercise if you are not recovering.'],
+ days:[['Chest & back','Bench Press (Barbell)|4|10|90\nIncline Bench Press (Dumbbell)|3|10|90\nChest Fly (Dumbbell)|3|12|60\nPull-up|4|10|90\nBent Over Row (Barbell)|4|10|90\nStraight-Arm Pulldown|3|12|60'],
+       ['Shoulders & arms','Overhead Press (Barbell)|4|10|90\nLateral Raise (Dumbbell)|4|12|60\nUpright Row|3|10|60\nBicep Curl (Barbell)|4|10|60\nConcentration Curl|3|12|60\nClose-Grip Bench Press|4|10|90\nSkull Crusher|3|12|60'],
+       ['Legs & abs','Back Squat|5|10|120\nLeg Press|4|12|90\nLeg Extension|3|15|60\nStiff-Leg Deadlift|4|10|90\nLying Leg Curl|3|12|60\nStanding Calf Raise|5|15|60\nCrunch|3|20|45']]},
+{id:'ppl',name:'Push / Pull / Legs',tag:'Simple 3-day rotation. Run it once or twice a week.',level:'All levels',goal:'Size & strength',
+ tip:'Add weight or a rep each week. Run once a week (3 days) or twice (6 days).',
+ rules:['Push = chest, shoulders, triceps. Pull = back, biceps. Legs = everything below the waist.','Run once a week for 3 days, or twice for 6 days if you recover well.','Top end of the rep range on every set = add weight next time.'],
+ days:[['Push','Bench Press (Barbell)|4|8|120\nOverhead Press (Barbell)|3|8|120\nIncline Bench Press (Dumbbell)|3|10|90\nLateral Raise (Dumbbell)|3|15|60\nTricep Pushdown (Rope)|3|12|60'],
+       ['Pull','Deadlift (Barbell)|3|5|180\nPull-up|3|8|120\nSeated Cable Row|3|10|90\nFace Pull|3|15|60\nHammer Curl|3|12|60'],
+       ['Legs','Back Squat|4|8|150\nRomanian Deadlift|3|10|120\nLeg Press|3|12|90\nLying Leg Curl|3|12|60\nStanding Calf Raise|4|12|60']]},
+{id:'five5',name:'5×5 Strength',tag:'Three big lifts per session, 5 sets of 5. The classic way to get strong.',level:'Beginner',goal:'Strength',
+ tip:'All 5×5 completed = add 2.5 kg next time (5 kg on deadlifts).',
+ rules:['Alternate Workout A and B, 3 days a week (e.g. Mon, Wed, Fri).','Start light. Every time you complete all 5 sets of 5, add 2.5 kg next session (5 kg on deadlifts).','Fail a weight 3 sessions in a row? Drop it by 10% and build back up.','3 minutes rest on squats and deadlifts, 2–3 minutes on the rest.'],
+ days:[['Workout A','Back Squat|5|5|180\nBench Press (Barbell)|5|5|180\nBent Over Row (Barbell)|5|5|150'],
+       ['Workout B','Back Squat|5|5|180\nOverhead Press (Barbell)|5|5|180\nDeadlift (Barbell)|1|5|180']]}
+];
+PROGRAMS.forEach(p=>{p.days=p.days.map(([name,txt])=>({name,exercises:txt.split('\n').map(l=>{const[n,s,r,rest]=l.split('|');
+  const e={name:n,sets:Array.from({length:+s},()=>({a:'',b:r}))};if(rest!=null&&rest!=='')e.rest=+rest;return e})}))});
+
 /* ================= State ================= */
 let S={workouts:[],custom:[],routines:[],active:null,rest:90,sound:true};
 let editR=null,showAllPast=false;
@@ -488,11 +573,31 @@ function planHTML(){const wk=weekStart(Date.now()),R=S.routines;
     <span class="mv"><button data-act="rUp" data-k="${k}" ${k===0?'disabled':''} aria-label="Move up">↑</button><button data-act="rDown" data-k="${k}" ${k===R.length-1?'disabled':''} aria-label="Move down">↓</button></span></span></div>
     <div class="btns"><button class="btn sm" data-act="rEdit" data-id="${r.id}">Edit</button><button class="btn sm primary" data-act="rStart" data-id="${r.id}" ${r.exercises.length?'':'disabled'}>Start</button></div></div>`}).join('')
   :'<p class="muted small" style="margin:0 2px 10px">Set up your week here, like Day 1 Chest and triceps, Day 2 Back and biceps. Add exercises now and start each one when you get to the gym.</p>'}
-  <button class="btn block" data-act="rNew">Create a workout</button>`}
+  <div class="btn-grid"><button class="btn" data-act="rNew">Create a workout</button><button class="btn" data-act="progs">Browse programs</button></div>`}
+/* ================= Programs: browse and add to plan ================= */
+const progDays=p=>p.days.length+' day'+(p.days.length>1?'s':'');
+const progAdded=p=>S.routines.some(r=>r.prog===p.id);
+function openPrograms(){
+  openSheet('Programs',`<p class="muted small" style="margin:0 0 10px">Proven training methods, ready to follow. Tap one to see how it works, then add it straight to your plan. You can edit any day afterwards.</p>
+  ${PROGRAMS.map(p=>`<button class="row-tap prog-row" data-sact="prog" data-id="${p.id}"><span style="min-width:0"><span class="t">${esc(p.name)}</span><br><span class="s">${esc(p.tag)}</span><br><span class="prog-meta">${progDays(p)} · ${esc(p.level)} · ${esc(p.goal)}</span></span>${progAdded(p)?'<span class="done-tag">✓ In plan</span>':''}</button>`).join('')}`)}
+function openProgram(id){const p=PROGRAMS.find(x=>x.id===id);if(!p)return;const added=progAdded(p);
+  openSheet(esc(p.name),`<p style="margin:0 0 6px">${esc(p.tag)}</p><p class="prog-meta" style="margin:0 0 12px">${progDays(p)} · ${esc(p.level)} · ${esc(p.goal)}</p>
+  <h3 class="prog-h">How it works</h3><ul class="prog-rules">${p.rules.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+  ${p.days.map((d,k)=>`<h3 class="prog-h">Day ${k+1}: ${esc(d.name)}</h3><div class="panel prog-day">${d.exercises.map(e=>`<div class="prog-ex"><span>${esc(e.name)}</span><span class="muted">${e.sets.length}×${esc(e.sets[0].b)}${e.rest?` · ${restLabel(e.rest)}`:''}</span></div>`).join('')}</div>`).join('')}`,
+  `<div class="btn-grid"><button class="btn" data-sact="progs">Back</button>${added?`<button class="btn danger" data-sact="progRm" data-id="${p.id}">Remove from plan</button>`:`<button class="btn primary" data-sact="progAdd" data-id="${p.id}">Add to my plan</button>`}</div>`)}
+function addProgram(id){const p=PROGRAMS.find(x=>x.id===id);if(!p)return;
+  if(progAdded(p)){toast('Already in your plan');return}
+  p.days.forEach((d,k)=>S.routines.push({id:'r'+uid(),name:`${d.name} · ${p.name}`,prog:p.id,tip:p.tip,exercises:clone(d.exercises)}));
+  saveProfile(true);closeSheet();tab='workout';editR=null;render();window.scrollTo(0,0);
+  toast(`${p.name}: ${p.days.length} workouts added to your plan`)}
+function removeProgram(id){const p=PROGRAMS.find(x=>x.id===id);if(!p)return;
+  askConfirm('Remove program?',`The ${esc(p.name)} workouts will be taken out of your plan. Anything you have already logged stays in History.`,'Remove',()=>{S.routines=S.routines.filter(r=>r.prog!==id);saveProfile(true);closeSheet();render();toast(p.name+' removed from your plan')},()=>openProgram(id))}
+const restLabel=s=>s?(s>=60?(s%60?(s/60).toFixed(1).replace('.0',''):s/60)+' min rest':s+'s rest'):'no rest';
 function viewRoutine(){const r=editR;
   return`<div class="wk-head"><input class="wk-name" id="rName" value="${esc(r.name)}" placeholder="Workout name, e.g. Day 1 Chest" aria-label="Workout name" maxlength="60"></div>
   <p class="muted small" style="margin:-4px 0 12px">Add your exercises, sets and target weights. Nothing is logged until you start it.</p>
   ${r.exercises.map((e,i)=>{const[fa,fb]=FIELDS[exInfo(e.name).type];return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}</h3><button class="x" data-act="rRmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
+    <label class="ex-rest">Rest timer <select data-rrest="${i}">${restOpts(e.rest)}</select></label>
     <div class="r-head"><span>Set</span><span>${fa}</span><span>${fb}</span><span></span></div>
     ${e.sets.map((x,j)=>`<div class="r-row"><span class="setno">${j+1}</span><input inputmode="decimal" data-ri="${i}" data-rj="${j}" data-rf="a" value="${esc(x.a??'')}" placeholder="optional" aria-label="${fa} set ${j+1}"><input inputmode="decimal" data-ri="${i}" data-rj="${j}" data-rf="b" value="${esc(x.b??'')}" placeholder="optional" aria-label="${fb} set ${j+1}"><button class="x" data-act="rDelSet" data-i="${i}" data-j="${j}" aria-label="Delete set ${j+1}">×</button></div>`).join('')}
     <button class="addset" data-act="rAddSet" data-i="${i}">Add set</button></div>`}).join('')||'<p class="empty">No exercises yet.</p>'}
@@ -516,8 +621,9 @@ function loadWorkout(w,mode){if(!w)return;
 function startWorkout(from,rid){
   const h=new Date().getHours();
   S.active={id:uid(),name:from?from.name:(h<12?'Morning workout':h<17?'Afternoon workout':'Evening workout'),start:Date.now(),updated:Date.now(),
-    exercises:from?from.exercises.map(e=>({name:e.name,sets:e.sets.map(s=>({a:s.a??'',b:s.b??'',done:false}))})):[]};
+    exercises:from?from.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),sets:e.sets.map(s=>({a:s.a??'',b:s.b??'',done:false}))})):[]};
   if(rid)S.active.routine=rid;
+  if(from&&from.tip)S.active.tip=from.tip;
   saveProfile(true);render();window.scrollTo(0,0);
   if(!from)openPicker();
 }
@@ -528,6 +634,7 @@ function viewActive(){
   const ed=a.mode==='edit';
   return`<div class="wk-head"><input class="wk-name" id="wkName" value="${esc(a.name)}" aria-label="Workout name">${ed?'<span class="mode-tag">Editing</span>':'<span class="clock" id="clock">0:00</span>'}</div>
   <div class="meta-row"><span>${fmtDate(a.mode?a.orig.start:a.start,true)}</span><span class="right"><button class="snd" data-act="sound" aria-pressed="${!!S.sound}" aria-label="Tick sounds ${S.sound?'on':'off'}">${S.sound?SND_ON:SND_OFF}</button><label>Rest <select id="restSel">${[0,30,60,90,120,180,240].map(s=>`<option value="${s}" ${s==S.rest?'selected':''}>${s?(s>=60?(s/60)+' min':s+'s'):'Off'}</option>`).join('')}</select></label></span></div>
+  ${a.tip&&!ed?`<p class="prog-tip">${esc(a.tip)}</p>`:''}
   ${a.exercises.map((e,i)=>exCard(e,i)).join('')||'<p class="empty">No exercises yet.</p>'}
   ${a.exercises.some(e=>e.sets.length)?'<p class="tip">Swipe a set to the left to delete it.</p>':''}
   <div class="actions"><button class="btn block" data-act="pick">Add exercises</button>
@@ -535,7 +642,7 @@ function viewActive(){
   <button class="btn danger block" data-act="discard">${a.mode?'Cancel, keep it as it was':'Discard workout'}</button></div>`}
 function exCard(e,i){
   const info=exInfo(e.name),[fa,fb]=FIELDS[info.type],prev=prevSets(e.name,S.active.id)||[],best=histBest(e.name);
-  return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}</h3><button class="x" data-act="rmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
+  return`<div class="ex-card"><div class="hd"><h3>${esc(e.name)}${e.rest!=null?`<span class="rest-tag">${restLabel(e.rest)}</span>`:''}</h3><button class="x" data-act="rmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
   <div class="set-head"><span>Set</span><span>Previous</span><span>${fa}</span><span>${fb}</span><span></span></div>
   ${e.sets.map((s,j)=>`<div class="set-row ${s.done?'done':''}"><button class="set-del" data-act="delSet" data-i="${i}" data-j="${j}" tabindex="-1">Delete</button>
   <div class="set-fg" data-i="${i}" data-j="${j}"><span class="setno">${j+1}${s.done&&setPR(e,j,best)?'<span class="prb">PR</span>':''}</span><span class="prev">${prev[j]?esc(fmtSet(prev[j],info.type)):'–'}</span>
@@ -578,8 +685,16 @@ $('view').addEventListener('input',e=>{
 });
 $('view').addEventListener('change',e=>{
   if(e.target.id==='restSel'){S.rest=+e.target.value;saveProfile()}
+  if(e.target.dataset.rrest!=null&&editR){const ex=editR.exercises[+e.target.dataset.rrest],v=e.target.value;if(v==='')delete ex.rest;else ex.rest=+v}
   if(e.target.id==='progSel'){progEx=e.target.value;progMetric=0;render()}
 });
+function restOpts(cur){const list=[0,15,30,40,45,60,90,120,150,180,240];if(cur!=null&&!list.includes(cur))list.push(cur);list.sort((a,b)=>a-b);
+  return`<option value="" ${cur==null?'selected':''}>Default</option>`+list.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s?(s>=60?(s%60?(s/60).toFixed(1):s/60)+' min':s+'s'):'None'}</option>`).join('')}
+/* Tap a weight or reps box and its number is highlighted, so typing replaces it.
+   iOS clears a selection made on focus, so it is re-applied just after the tap finishes. */
+document.addEventListener('focusin',e=>{const t=e.target;if(t.tagName!=='INPUT'||t.getAttribute('inputmode')!=='decimal')return;
+  const v0=t.value,sel=()=>{if(document.activeElement!==t||t.value!==v0)return;try{t.setSelectionRange(0,t.value.length)}catch(_){t.select()}};
+  sel();setTimeout(sel,0);setTimeout(sel,120)});
 $('view').addEventListener('click',e=>{
   if(suppressClick){e.preventDefault();e.stopPropagation();return}
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,i=+b.dataset.i,j=+b.dataset.j;
@@ -593,7 +708,7 @@ $('view').addEventListener('click',e=>{
     const ex=S.active.exercises[i],s=ex.sets[j];
     if(!s.done){const p=(prevSets(ex.name,S.active.id)||[])[j];if(p){if(s.a===''||s.a==null)s.a=p.a;if(s.b===''||s.b==null)s.b=p.b}
       if((s.b===''||s.b==null)&&(s.a===''||s.a==null)){toast('Enter your '+FIELDS[exInfo(ex.name).type][0]+' and '+FIELDS[exInfo(ex.name).type][1].toLowerCase()+' first.');return}
-      s.done=true;startRest();
+      s.done=true;startRest(ex.rest);
       const pr=setPR(ex,j,histBest(ex.name));
       if(pr){prSound();toast('New PR: '+ex.name+', '+pr.text)}else tickSound()}
     else s.done=false;
@@ -602,6 +717,7 @@ $('view').addEventListener('click',e=>{
   if(act==='finish')finishWorkout();
   if(act==='toPlan'){saveToPlan(S.workouts.find(w=>w.id===b.dataset.id));return}
   if(act==='allPast'){showAllPast=!showAllPast;render()}
+  if(act==='progs')openPrograms();
   if(act==='rNew')openRoutine({id:'r'+uid(),name:'',isNew:true,exercises:[]});
   if(act==='rEdit'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r)openRoutine(clone(r))}
   if(act==='rStart'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r){startWorkout(r,r.id);toast(r.name+' started')}}
@@ -610,7 +726,7 @@ $('view').addEventListener('click',e=>{
   if(act==='rDelSet'){editR.exercises[i].sets.splice(j,1);render()}
   if(act==='rRmEx'){editR.exercises.splice(i,1);render()}
   if(act==='rSave'){const n=editR.name.trim();if(!n){toast('Give this workout a name first.');const el=$('rName');if(el)el.focus();return}
-    const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),exercises:editR.exercises.map(e=>({name:e.name,sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
+    const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),...(editR.prog?{prog:editR.prog,tip:editR.tip}:{}),exercises:editR.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),sets:e.sets.map(x=>({a:x.a,b:x.b}))}))};
     const k=S.routines.findIndex(x=>x.id===r.id);if(k>-1)S.routines[k]=r;else S.routines.push(r);
     editR=null;saveProfile(true);render();window.scrollTo(0,0);toast(n+' saved to your plan')}
   if(act==='rCancel'){editR=null;render();window.scrollTo(0,0)}
@@ -706,6 +822,10 @@ $('sheet').addEventListener('click',e=>{
   if(act.dataset.sact==='delCustom'){const n=act.dataset.name;askConfirm('Delete exercise?',`${esc(n)} will be removed from the exercise list. Workouts you have already logged keep it.`,'Delete exercise',()=>{S.custom=S.custom.filter(e=>e.name!==n);saveProfile(true);closeSheet();render();toast(n+' deleted')},()=>openExercise(n))}
   if(act.dataset.sact==='yes'){const f=confirmCb.yes;confirmCb={};if(f)f()}
   if(act.dataset.sact==='no'){const f=confirmCb.no;confirmCb={};if(f)f();else closeSheet()}
+  if(act.dataset.sact==='progs'){openPrograms();$('sheetScroll').scrollTop=0}
+  if(act.dataset.sact==='prog'){openProgram(act.dataset.id);$('sheetScroll').scrollTop=0}
+  if(act.dataset.sact==='progAdd')addProgram(act.dataset.id);
+  if(act.dataset.sact==='progRm')removeProgram(act.dataset.id);
   if(act.dataset.sact==='saveCustom')saveCustom();
   if(act.dataset.sact==='backPick')openPicker(true);
   if(act.dataset.sact==='progress'){progEx=act.dataset.name;progMetric=0;tab='progress';closeSheet();render();window.scrollTo(0,0)}
@@ -735,7 +855,8 @@ function finishWorkout(){
 
 /* ================= Rest timer ================= */
 let restEnd=0,restLen=0;
-function startRest(){if(!S.rest)return;restLen=S.rest*1000;restEnd=Date.now()+restLen;$('rest').classList.remove('hidden');tickClock()}
+/* A program exercise can carry its own timer (e.g. 40s on a 7-set finisher). Rest set to Off turns every timer off. */
+function startRest(sec){if(!S.rest)return;if(sec==null)sec=S.rest;if(!sec){stopRest();return}restLen=sec*1000;restEnd=Date.now()+restLen;$('rest').classList.remove('hidden');tickClock()}
 function stopRest(){restEnd=0;$('rest').classList.add('hidden')}
 $('rest').addEventListener('click',e=>{const v=e.target.dataset.rest;if(!v)return;if(v==='skip')return stopRest();restEnd+=+v*1000;restLen=Math.max(restLen,restEnd-Date.now());tickClock()});
 const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
