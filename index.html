@@ -158,6 +158,19 @@ h3{font-size:1.2rem;margin:0}
 .chart .area{fill:color-mix(in srgb,var(--accent) 14%,transparent)}
 .chart .pt{fill:var(--surface);stroke:var(--accent);stroke-width:2}
 .chart .br{fill:var(--accent)}
+.chart .pj{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-dasharray:6 5;stroke-linecap:round}
+.chart .band{fill:color-mix(in srgb,var(--accent) 13%,transparent)}
+.chart .today{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.chart .endpt{fill:var(--accent)}
+.chart .endlbl{fill:var(--ink);font-weight:700;font-size:11px}
+.proj-sum{background:var(--bg);border-radius:12px;padding:10px 12px;margin:10px 0 0;font-size:.95rem}
+.proj-sum b{font-variant-numeric:tabular-nums}
+.proj-rows{margin-top:10px}
+.proj-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:.9rem}
+.proj-row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-row .v{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.proj-row .d{font-variant-numeric:tabular-nums;font-weight:700;text-align:right;min-width:52px}
+.up{color:var(--green)}.down{color:var(--red)}
 .chart .br.now{fill:var(--red)}
 .seg{display:flex;gap:4px;background:var(--line);padding:3px;border-radius:10px;margin-bottom:10px}
 .seg button{flex:1;border:0;background:transparent;padding:7px 4px;border-radius:8px;font-weight:600;font-size:.85rem;color:var(--muted);cursor:pointer}
@@ -474,6 +487,7 @@ PROGRAMS.forEach(p=>{p.days=p.days.map(([name,txt])=>({name,exercises:txt.split(
 let S={workouts:[],custom:[],routines:[],active:null,rest:90,sound:true};
 let editR=null,showAllPast=false;
 let tab='workout',exFilter='All',exSearch='',progEx=null,progMetric=0;
+let projBy='ex',projKey=null,projDays=60,projMet=0;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=o=>JSON.parse(JSON.stringify(o));
@@ -569,6 +583,84 @@ function barSVG(vals,labels,fmt){
     if(i%3===0||i===n-1)s+=`<text x="${xx+ww/2}" y="${H-6}" text-anchor="middle">${labels[i]}</text>`});
   return`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly chart"><line class="grid" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/>${s}</svg>`}
 const shortDate=ts=>new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+/* ================= Projection =================
+   Fits a trend to your logged sessions (recent ones count more), then carries it forward.
+   Progress is assumed to slow over time rather than climb in a straight line forever,
+   gains are capped at about 8% a month, and the shaded band shows the likely range. */
+const PJ_KEY={w:'best',bw:'maxR',cardio:'dist',time:'hold'};
+const PJ_METS={w:[['Est. 1RM','best','kg'],['Heaviest','heavy','kg'],['Most reps','maxR','reps']],bw:[['Most reps','maxR','reps'],['Total reps','totR','reps']],cardio:[['Distance','dist','km'],['Time','time','min']],time:[['Longest hold','hold','sec']]};
+const TAU=100;
+const fv=(v,u)=>u==='reps'?String(Math.round(v)):f1(v);
+function project(pts){
+  if(pts.length<3)return null;const tEnd=pts[pts.length-1].t;
+  let use=pts.filter(p=>p.t>=tEnd-120*DAY);if(use.length<3)use=pts.slice(-6);
+  const span=(use[use.length-1].t-use[0].t)/DAY;if(span<10)return null;
+  const xs=use.map(p=>(p.t-tEnd)/DAY),ys=use.map(p=>p.v),ws=xs.map(x=>Math.exp(x/60));
+  const W=ws.reduce((a,b)=>a+b,0),mx=xs.reduce((a,x,i)=>a+x*ws[i],0)/W,my=ys.reduce((a,y,i)=>a+y*ws[i],0)/W;
+  let sxy=0,sxx=0;xs.forEach((x,i)=>{sxy+=ws[i]*(x-mx)*(ys[i]-my);sxx+=ws[i]*(x-mx)**2});
+  let b=sxx?sxy/sxx:0;const vNow=Math.max(0,my-b*mx);
+  const cap=Math.max(vNow,1)*0.08/30;b=Math.max(-cap,Math.min(cap,b));
+  const res=Math.sqrt(xs.reduce((a,x,i)=>a+ws[i]*(ys[i]-(vNow+b*x))**2,0)/W);
+  const gain=d=>b*TAU*(1-Math.exp(-d/TAU));
+  return{vNow,tEnd,n:use.length,at:d=>Math.max(0,vNow+gain(d)),hw:d=>res*Math.sqrt(1+d/45)+Math.abs(gain(d))*0.25+vNow*0.01*Math.sqrt(d/30)}}
+function projSVG(hist,pj,days,unit,pct){
+  const W=320,H=180,L=pct?48:40,R=48,T=14,B=26,tEnd=pj.tEnd,t1=tEnd+days*DAY;
+  hist=hist.filter(p=>p.t>=tEnd-180*DAY);const t0=Math.min(hist.length?hist[0].t:tEnd-30*DAY,tEnd-Math.max(14,days*.6)*DAY);
+  const steps=24,pp=[...Array(steps+1)].map((_,k)=>{const d=days*k/steps;return{t:tEnd+d*DAY,v:pj.at(d),h:pj.hw(d)}});
+  const all=[...hist.map(p=>p.v),...pp.map(p=>p.v+p.h),...pp.map(p=>Math.max(pct?-1e9:0,p.v-p.h))];
+  let lo=Math.min(...all),hi=Math.max(...all);if(hi-lo<1e-6){lo-=1;hi+=1}const pad=(hi-lo)*.08;lo=pct?lo-pad:Math.max(0,lo-pad);hi+=pad;
+  const x=t=>L+(t-t0)/(t1-t0)*(W-L-R),y=v=>T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  const fmt=v=>(pct&&v>0?'+':'')+(pct?Math.round(v):fv(v,unit))+(pct?'%':'');
+  let g='';[lo,(lo+hi)/2,hi].forEach(v=>{g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L-5}" y="${(y(v)+3).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`});
+  const hd=hist.length?'M'+hist.map(p=>x(p.t).toFixed(1)+' '+y(p.v).toFixed(1)).join('L'):'';
+  const pd='M'+pp.map(p=>x(p.t).toFixed(1)+' '+y(p.v).toFixed(1)).join('L');
+  const band='M'+pp.map(p=>x(p.t).toFixed(1)+' '+y(p.v+p.h).toFixed(1)).join('L')+'L'+[...pp].reverse().map(p=>x(p.t).toFixed(1)+' '+y(pct?p.v-p.h:Math.max(0,p.v-p.h)).toFixed(1)).join('L')+'Z';
+  const e=pp[pp.length-1],xt=x(tEnd);
+  return`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Projection over ${days} days">${g}
+  <path class="band" d="${band}"/>${hd?`<path class="ln" d="${hd}"/>`:''}${hist.length<=30?hist.map(p=>`<circle class="pt" cx="${x(p.t).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3"/>`).join(''):''}
+  <path class="pj" d="${pd}"/><line class="today" x1="${xt}" x2="${xt}" y1="${T}" y2="${H-B}"/>
+  <circle class="endpt" cx="${x(e.t).toFixed(1)}" cy="${y(e.v).toFixed(1)}" r="4"/><text class="endlbl" x="${(x(e.t)+6).toFixed(1)}" y="${(y(e.v)+4).toFixed(1)}">${fmt(e.v)}${pct?'':''}</text>
+  <text x="${L}" y="${H-7}">${shortDate(t0)}</text><text x="${xt}" y="${H-7}" text-anchor="middle">Today</text><text x="${W-R}" y="${H-7}" text-anchor="end">${shortDate(t1)}</text></svg>`}
+function exPoints(name,key){return series(name).map(s=>({t:s.date,v:s.m[key]})).filter(p=>p.v>0)}
+/* Group view: each exercise's own trend, turned into % change from where it started, then averaged */
+function groupProj(names){const rows=[];
+  names.forEach(n=>{const type=exInfo(n).type,key=PJ_KEY[type],unit=PJ_METS[type][0][2],pts=exPoints(n,key);const pj=project(pts);if(!pj)return;
+    const base=pts[0].v;if(!base)return;rows.push({n,unit,pts,pj,base})});
+  if(!rows.length)return null;
+  const weeks={};rows.forEach(r=>r.pts.forEach(p=>{const w=weekStart(p.t);(weeks[w]=weeks[w]||[]).push(p.v/r.base*100-100)}));
+  const hist=Object.keys(weeks).map(Number).sort((a,b)=>a-b).map(w=>({t:w+3*DAY,v:weeks[w].reduce((a,b)=>a+b,0)/weeks[w].length}));
+  const tEnd=Math.max(...rows.map(r=>r.pj.tEnd)),avg=f=>rows.reduce((a,r)=>a+f(r),0)/rows.length;
+  const pj={tEnd,vNow:avg(r=>r.pj.vNow/r.base*100-100),at:d=>avg(r=>r.pj.at(d)/r.base*100-100),hw:d=>avg(r=>r.pj.hw(d)/r.base*100)};
+  return{rows,hist,pj}}
+function projHTML(){
+  const counted=exCounts();
+  const exNames=Object.keys(counted).filter(n=>counted[n]>=3).sort((a,b)=>counted[b]-counted[a]);
+  const musc=MUSCLES.filter(m=>exNames.some(n=>exInfo(n).muscle===m));
+  const plans=S.routines.filter(r=>r.exercises.some(e=>exNames.includes(e.name)));
+  const opts={ex:exNames.map(n=>[n,n]),mus:musc.map(m=>[m,m]),plan:plans.map(r=>[r.id,r.name])}[projBy];
+  if(!opts.some(o=>o[0]===projKey))projKey=opts.length?opts[0][0]:null;
+  const seg=`<div class="seg">${[['ex','Exercise'],['mus','Muscle group'],['plan','Plan workout']].map(([k,l])=>`<button data-act="projBy" data-k="${k}" aria-pressed="${projBy===k}">${l}</button>`).join('')}</div>`;
+  const dseg=`<div class="seg">${[30,60,90,180].map(d=>`<button data-act="projDays" data-d="${d}" aria-pressed="${projDays===d}">${d} days</button>`).join('')}</div>`;
+  const foot='<p class="muted small" style="margin:8px 0 0">A guide, not a promise. It follows your recent trend, assumes progress slows as you get stronger, and the shaded area is the likely range. Sleep, food and missed sessions change it.</p>';
+  let body='';
+  if(!projKey)body=`<p class="empty small">${projBy==='plan'?'Save workouts to My plan and log them a few times to see a projection here.':'Log an exercise at least 3 times, over 10 days or more, to see a projection.'}</p>`;
+  else if(projBy==='ex'){const type=exInfo(projKey).type,mets=PJ_METS[type],k=Math.min(projMet,mets.length-1),[label,key,unit]=mets[k];
+    const pts=exPoints(projKey,key),pj=project(pts);
+    body=`${mets.length>1?`<div class="seg">${mets.map((m,i)=>`<button data-act="projMet" data-k="${i}" aria-pressed="${i===k}">${m[0]}</button>`).join('')}</div>`:''}`+
+      (pj?`${projSVG(pts,pj,projDays,unit,false)}
+      <div class="proj-sum">${esc(label)}: <b>${fv(pj.vNow,unit)} ${unit}</b> now, about <b class="${pj.at(projDays)>=pj.vNow?'up':'down'}">${fv(pj.at(projDays),unit)} ${unit}</b> in ${projDays} days<br><span class="muted small">Likely range ${fv(Math.max(0,pj.at(projDays)-pj.hw(projDays)),unit)} to ${fv(pj.at(projDays)+pj.hw(projDays),unit)} ${unit}, based on ${pj.n} sessions</span></div>`
+      :'<p class="empty small">Not enough spread yet. Log this a few more times over at least 10 days.</p>')}
+  else{const names=projBy==='mus'?exNames.filter(n=>exInfo(n).muscle===projKey):[...new Set(S.routines.find(r=>r.id===projKey).exercises.map(e=>e.name))].filter(n=>exNames.includes(n));
+    const gp=groupProj(names);
+    body=gp?`${projSVG(gp.hist,gp.pj,projDays,'%',true)}
+      <div class="proj-sum">${projBy==='mus'?esc(projKey)+' strength':'This workout'}: <b class="${gp.pj.at(projDays)>=gp.pj.vNow?'up':'down'}">${gp.pj.at(projDays)-gp.pj.vNow>=0?'+':''}${f1(gp.pj.at(projDays)-gp.pj.vNow)}%</b> stronger in ${projDays} days<br><span class="muted small">The graph shows % change since you started logging (${Math.round(gp.pj.at(projDays))>=0?'+':''}${Math.round(gp.pj.at(projDays))}% by then), across ${gp.rows.length} exercise${gp.rows.length>1?'s':''}</span></div>
+      <div class="proj-rows">${gp.rows.map(r=>{const now=r.pj.vNow,fut=r.pj.at(projDays),ch=now?(fut/now*100-100):0;
+        return`<div class="proj-row"><span class="nm">${esc(r.n)}</span><span class="v">${fv(now,r.unit)} → ${fv(fut,r.unit)} ${r.unit}</span><span class="d ${ch>=0?'up':'down'}">${ch>=0?'+':''}${f1(ch)}%</span></div>`}).join('')}</div>`
+      :'<p class="empty small">Not enough spread yet. Log these exercises a few more times over at least 10 days.</p>'}
+  return`<h2>Projection</h2><div class="panel">${seg}
+  ${opts.length?`<select class="sel-ex" id="projSel" aria-label="Choose what to project">${opts.map(([v,l])=>`<option value="${esc(v)}" ${v===projKey?'selected':''}>${esc(l)}</option>`).join('')}</select>`:''}
+  ${dseg}${body}${projKey?foot:''}</div>`}
 
 /* ================= UI plumbing ================= */
 let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add('hidden'),2600)}
@@ -800,6 +892,7 @@ $('view').addEventListener('change',e=>{
   if(e.target.id==='restSel'){S.rest=+e.target.value;saveProfile()}
   if(e.target.dataset.rrest!=null&&editR){const ex=editR.exercises[+e.target.dataset.rrest],v=e.target.value;if(v==='')delete ex.rest;else ex.rest=+v}
   if(e.target.id==='progSel'){progEx=e.target.value;progMetric=0;render()}
+  if(e.target.id==='projSel'){projKey=e.target.value;projMet=0;render()}
 });
 function restOpts(cur){const list=[0,15,30,40,45,60,90,120,150,180,240];if(cur!=null&&!list.includes(cur))list.push(cur);list.sort((a,b)=>a-b);
   return`<option value="" ${cur==null?'selected':''}>Default</option>`+list.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s?(s>=60?(s%60?(s/60).toFixed(1):s/60)+' min':s+'s'):'None'}</option>`).join('')}
@@ -855,6 +948,9 @@ $('view').addEventListener('click',e=>{
   if(act==='filter'){exFilter=b.dataset.m;render()}
   if(act==='addCustom')openCustom({name:exSearch.trim(),muscle:exFilter});
   if(act==='metric'){progMetric=+b.dataset.k;render()}
+  if(act==='projBy'){projBy=b.dataset.k;projKey=null;projMet=0;render()}
+  if(act==='projDays'){projDays=+b.dataset.d;render()}
+  if(act==='projMet'){projMet=+b.dataset.k;render()}
 });
 
 /* ================= Swipe to delete a set ================= */
@@ -1144,6 +1240,7 @@ function viewProgress(){
   <h2>Exercise progress</h2><div class="panel">
   <select class="sel-ex" id="progSel" aria-label="Choose exercise">${names.map(n=>`<option ${n===progEx?'selected':''}>${esc(n)}</option>`).join('')}</select>
   ${exerciseBlock(progEx)}</div>
+  ${projHTML()}
   <h2>Workouts per week</h2><div class="panel">${barSVG(counts,wkLbl)}</div>
   <h2>Volume per week</h2><div class="panel">${barSVG(vols,wkLbl,v=>v>=1000?f1(v/1000)+'t':Math.round(v))}<p class="muted small" style="margin:6px 0 0">Weight × reps across every set. Last 30 days: ${fmtVol(last30.reduce((v,w)=>v+wVolume(w),0))}.</p></div>
   <h2>Sets by muscle, last 30 days</h2><div class="panel">${musArr.length?musArr.map(([m,n])=>`<div class="hbar"><span>${esc(m)}</span><span class="trk"><i style="width:${n/musMax*100}%"></i></span><b>${n}</b></div>`).join(''):'<p class="empty small">No sets in the last 30 days.</p>'}</div>`}
