@@ -154,6 +154,8 @@ h3{font-size:1.2rem;margin:0}
 .pl-step{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:1.3rem;font-weight:700;color:var(--accent);cursor:pointer}
 .pl-out{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0 12px;text-align:center}
 .pl-sum{font-size:.95rem;margin-bottom:6px}.pl-sum span{color:var(--muted);margin:0 2px}.pl-sum b{color:var(--accent)}
+.pl-oth{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:.88rem}.pl-oth label{font-weight:600}
+.pl-oth input{width:80px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);text-align:center;font-weight:600}
 .pl-out .per{font-size:1.15rem;font-weight:700;margin-top:6px}
 .pl-out svg{width:100%;height:auto;display:block}
 .pl-lbl{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
@@ -549,8 +551,8 @@ PROGRAMS.forEach(p=>{p.days=p.days.map(([name,txt])=>({name,exercises:txt.split(
   const e={name:n,sets:Array.from({length:+s},()=>({a:'',b:r}))};if(rest!=null&&rest!=='')e.rest=+rest;return e})}))});
 
 /* ================= State ================= */
-let S={workouts:[],custom:[],routines:[],active:null,rest:90,sound:true,coach:true,bar:20,plates:[25,20,15,10,5,2.5,1.25],deload:0,deloadSnooze:0,health:false};
-const PROF_EXTRA=['coach','bar','plates','deload','deloadSnooze','health'];
+let S={workouts:[],custom:[],routines:[],active:null,rest:90,sound:true,coach:true,bar:20,plates:[25,20,15,10,5,2.5,1.25],deload:0,deloadSnooze:0,health:false,barFor:{}};
+const PROF_EXTRA=['coach','bar','plates','deload','deloadSnooze','health','barFor'];
 let editR=null,showAllPast=false;
 let tab='workout',exFilter='All',exSearch='',progEx=null,progMetric=0;
 let projBy='ex',projKey=null,projDays=60,projMet=0;
@@ -1004,7 +1006,7 @@ $('view').addEventListener('click',e=>{
   if(act==='warm'){addWarmups(i);return}
   if(act==='ssLink'){ssToggle(S.active.exercises,i);touch();render();return}
   if(act==='rSsLink'){ssToggle(editR.exercises,i);render();return}
-  if(act==='plates'){const ex=S.active.exercises[i],w=ex.sets.find(x=>!x.k&&!x.done)||ex.sets.find(x=>!x.k);openPlates(num(w&&w.a)||num((coach(ex)||{}).a)||60);return}
+  if(act==='plates'){const ex=S.active.exercises[i],w=ex.sets.find(x=>!x.k&&!x.done)||ex.sets.find(x=>!x.k);openPlates(num(w&&w.a)||num((coach(ex)||{}).a)||60,ex.name);return}
   if(act==='deloadStart'){S.deload=Date.now()+7*DAY;saveProfile(true);render();toast('Deload week started. The coach will suggest lighter targets.');return}
   if(act==='deloadSnooze'){S.deloadSnooze=Date.now()+14*DAY;saveProfile(true);render();toast('OK. I will check again in 2 weeks.');return}
   if(act==='deloadEnd'){S.deload=0;S.deloadSnooze=Date.now()+21*DAY;saveProfile(true);render();toast('Deload ended. Back to normal targets.');return}
@@ -1273,7 +1275,7 @@ function ssInfo(list,i){const e=list[i];if(!e.ss)return null;const ids=[];list.f
 function toolsHTML(e,i,list,pre){const info=exInfo(e.name),linked=list[i+1]&&e.ss&&list[i+1].ss===e.ss,b=[];
   if(!pre&&info.type==='w')b.push(`<button data-act="warm" data-i="${i}">+ Warm-up sets</button>`);
   if(i<list.length-1)b.push(`<button data-act="${pre}${pre?'S':'s'}sLink" data-i="${i}" class="${linked?'on':''}" aria-pressed="${!!linked}">${linked?'Superset ✓ unlink':'Superset with next'}</button>`);
-  if(!pre&&info.equip==='Barbell')b.push(`<button data-act="plates" data-i="${i}">Plates</button>`);
+  if(!pre&&(info.equip==='Barbell'||info.equip==='Machine'))b.push(`<button data-act="plates" data-i="${i}">Plates</button>`);
   return b.length?`<div class="ex-tools">${b.join('')}</div>`:''}
 /* After ticking a set: no rest before a drop set or between superset exercises; shorter rest after warm-ups */
 function afterTick(i,j){const list=S.active.exercises,ex=list[i],nx=ex.sets[j+1];
@@ -1316,7 +1318,7 @@ function addWarmups(i){const ex=S.active.exercises[i],info=exInfo(ex.name),wi=ex
   let W=num(wi>-1&&ex.sets[wi].a);if(!W&&wi>-1){const p=alignPrev(prevSets(ex.name,S.active.id),ex.sets,wi);W=num(p&&p.a)}
   if(!W){const c=coach(ex);W=c&&num(c.a)}
   if(!W){toast('Enter your working weight first, then tap Warm-up sets.');return}
-  const bb=info.equip==='Barbell',inc=bb?2.5:/Dumbbell|Kettlebell/.test(info.equip)?2:2.5,bar=bb?S.bar:0;
+  const bb=info.equip==='Barbell',inc=bb?2.5:/Dumbbell|Kettlebell/.test(info.equip)?2:2.5,bar=bb?barOf(ex.name):0;
   const steps=bb?[[0,10],[.4,8],[.6,5],[.8,3]]:[[.5,10],[.75,5]],out=[];
   steps.forEach(([p,r])=>{const w=bb&&p===0?bar:roundTo(W*p,inc);if(w<=0||w>=W||(bb&&w<bar))return;if(out.length&&w<=out[out.length-1].a)return;out.push({a:w,b:r})});
   if(!out.length){toast('Light enough to start straight away. No warm-up needed.');return}
@@ -1344,16 +1346,21 @@ function plateSVG(side){let x=58,g='';const H=130,cy=H/2;
   side.forEach(p=>{const[c,h,w]=PLATE[p]||['#999',40,6];g+=`<rect x="${x}" y="${cy-h/2}" width="${w}" height="${h}" rx="3" fill="${c}" stroke="rgba(0,0,0,.35)"/>`;
     if(w>=10)g+=`<text x="${x+w/2}" y="${cy+3}" text-anchor="middle" font-size="9" font-weight="700" fill="${p===5||p===15?'#222':'#fff'}" transform="rotate(-90 ${x+w/2} ${cy})">${p}</text>`;x+=w+2});
   return`<svg viewBox="0 0 320 ${H}" role="img" aria-label="Plates on one side of the bar"><rect x="0" y="${cy-5}" width="40" height="10" rx="3" fill="#8b94a3"/><rect x="40" y="${cy-14}" width="12" height="28" rx="3" fill="#6b7482"/><rect x="52" y="${cy-7}" width="262" height="14" rx="4" fill="#b7bec9"/>${g}${x>58?`<rect x="${x}" y="${cy-11}" width="8" height="22" rx="2" fill="#4a5261"/>`:''}</svg>`}
-let plW=60;
-function openPlates(w){plW=w||plW;openSheet('Plate calculator',`<div class="pl-w"><button class="pl-step" data-pact="minus" aria-label="Less weight">−</button><input id="plW" inputmode="decimal" value="${f1(plW)}" aria-label="Total weight in kg"><button class="pl-step" data-pact="plus" aria-label="More weight">+</button></div>
+let plW=60,plEx=null;
+/* Each exercise remembers its own bar or machine start weight. Barbell lifts default to your usual bar, machines to none. */
+function barOf(name){if(name&&S.barFor&&S.barFor[name]!=null)return S.barFor[name];if(!name)return S.bar;return exInfo(name).equip==='Barbell'?S.bar:0}
+const curBar=()=>barOf(plEx),isMach=()=>!!plEx&&exInfo(plEx).equip==='Machine';
+function setBar(v){if(plEx){S.barFor=S.barFor||{};S.barFor[plEx]=v}else S.bar=v;saveProfile()}
+function openPlates(w,name){plW=w||plW;plEx=name||null;const B=curBar();openSheet(plEx?'Plates · '+esc(plEx):'Plate calculator',`<div class="pl-w"><button class="pl-step" data-pact="minus" aria-label="Less weight">−</button><input id="plW" inputmode="decimal" value="${f1(plW)}" aria-label="Total weight in kg"><button class="pl-step" data-pact="plus" aria-label="More weight">+</button></div>
   <div id="plOut"></div>
-  <div class="pl-lbl">Bar</div><div class="seg">${[20,15,10,0].map(b=>`<button data-pact="bar" data-v="${b}" aria-pressed="${S.bar===b}">${b?b+' kg':'No bar'}</button>`).join('')}</div>
+  <div class="pl-lbl">${isMach()?'Machine start weight':'Bar'}</div><div class="seg">${[20,15,10,0].map(b=>`<button data-pact="bar" data-v="${b}" aria-pressed="${B===b}">${b?b+' kg':isMach()?'None':'No bar'}</button>`).join('')}</div>
+  <div class="pl-oth"><label for="plBar">Other</label><input id="plBar" inputmode="decimal" placeholder="kg" value="${[20,15,10,0].includes(B)?'':f1(B)}" aria-label="Other bar or machine start weight in kg"><span class="muted small">${plEx?(isMach()?'Some machines, like leg press sleds, have their own weight. ':'')+'Saved for this exercise.':'Your usual bar for barbell exercises.'}</span></div>
   <div class="pl-lbl">Plates your gym has</div><div class="chips" style="flex-wrap:wrap">${ALL_PLATES.map(p=>`<button class="chip" data-pact="plate" data-v="${p}" aria-pressed="${S.plates.includes(p)}">${p} kg</button>`).join('')}</div>`);plOut()}
-function plOut(){const el=$('plOut');if(!el)return;const r=plateMath(plW,S.bar,S.plates);
-  if(!r){el.innerHTML=`<div class="pl-out"><b>Less than the bar.</b><br><span class="muted small">The bar alone weighs ${S.bar} kg.</span></div>`;return}
-  const off=Math.abs(r.load-plW)>0.01,plates=r.load-S.bar,side=plates/2;
-  el.innerHTML=`<div class="pl-out"><div class="pl-sum">${f1(plW)} kg total${S.bar?` <span>−</span> ${S.bar} kg bar`:''} <span>=</span> <b>${f1(plW-S.bar)} kg of plates</b></div>
-  ${plateSVG(r.side)}<div class="per">${r.side.length?`${f1(side)} kg each side: `+r.side.map(String).join(' + '):'Just the bar, no plates'}</div>
+function plOut(){const el=$('plOut');if(!el)return;const B=curBar(),what=isMach()?'machine':'bar',r=plateMath(plW,B,S.plates);
+  if(!r){el.innerHTML=`<div class="pl-out"><b>Less than the ${what}.</b><br><span class="muted small">The ${what} alone weighs ${f1(B)} kg.</span></div>`;return}
+  const off=Math.abs(r.load-plW)>0.01,side=(r.load-B)/2;
+  el.innerHTML=`<div class="pl-out"><div class="pl-sum">${f1(plW)} kg total${B?` <span>−</span> ${f1(B)} kg ${what}`:''} <span>=</span> <b>${f1(plW-B)} kg of plates</b></div>
+  ${plateSVG(r.side)}<div class="per">${r.side.length?`${f1(side)} kg each side: `+r.side.map(String).join(' + '):isMach()?'No plates':'Just the bar, no plates'}</div>
   ${off?`<div class="muted small" style="margin-top:4px">Can't make exactly ${f1(plW)} kg with these plates. Closest is <b>${f1(r.load)} kg</b>.</div>`:''}</div>`}
 
 /* ================= Settings & Apple Health ================= */
@@ -1381,16 +1388,17 @@ function openSettings(){openSheet('Settings',`
   <button class="btn block" data-pact="hkTest">Send test workout</button>
   <p class="small muted" style="margin:8px 0 0">After it runs, swipe back to Lift Log. The workout shows in the Health app under Workouts. Lift Log only sends the start time and duration.</p></div>`)}
 $('gearBtn').addEventListener('click',openSettings);
-$('sheet').addEventListener('input',e=>{if(e.target.id==='plW'){const v=num(e.target.value.replace(',','.'));if(v!=null){plW=v;plOut()}}});
+$('sheet').addEventListener('input',e=>{if(e.target.id==='plBar'){const v=num(e.target.value.replace(',','.'));if(v!=null&&v>=0){setBar(v);document.querySelectorAll('[data-pact=bar]').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.v===v));plOut()}return}
+  if(e.target.id==='plW'){const v=num(e.target.value.replace(',','.'));if(v!=null){plW=v;plOut()}}});
 $('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-pact]');if(!b)return;const k=b.dataset.pact,v=+b.dataset.v;
   if(k==='minus'||k==='plus'){plW=Math.max(0,roundTo(plW+(k==='plus'?2.5:-2.5),1.25));$('plW').value=f1(plW);plOut();return}
-  if(k==='bar'){S.bar=v;saveProfile();b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));plOut();return}
+  if(k==='bar'){setBar(v);b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));const o=$('plBar');if(o)o.value='';plOut();return}
   if(k==='plate'){S.plates=S.plates.includes(v)?S.plates.filter(x=>x!==v):[...S.plates,v].sort((a,c)=>c-a);saveProfile();b.setAttribute('aria-pressed',S.plates.includes(v));plOut();return}
   if(k==='coach'){S.coach=!S.coach;saveProfile();render();openSettings();return}
   if(k==='health'){S.health=!S.health;saveProfile();render();openSettings();return}
   if(k==='dlStart'){S.deload=Date.now()+7*DAY;saveProfile(true);render();openSettings();toast('Deload week started');return}
   if(k==='dlEnd'){S.deload=0;S.deloadSnooze=Date.now()+21*DAY;saveProfile(true);render();openSettings();toast('Deload ended');return}
-  if(k==='openPl'){openPlates();return}
+  if(k==='openPl'){openPlates(null,null);return}
   if(k==='hkTest'){const now=Date.now();location.href='shortcuts://run-shortcut?name='+encodeURIComponent(HK_NAME)+'&input=text&text='+encodeURIComponent(healthPayload({name:'Lift Log test',start:now-30*6e4,end:now,exercises:[]}));return}
 });
 
