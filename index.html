@@ -762,7 +762,7 @@ function viewStart(){
   const today=sorted().filter(w=>isToday(w.start));
   return`<div class="hero"><h2 style="margin:0">Ready to train?</h2><p class="muted">${thisWeek?`${thisWeek} workout${thisWeek>1?'s':''} done this week.`:'No workouts yet this week.'}</p>
   <button class="btn primary block" data-act="start">Start empty workout</button></div>
-  ${deloadHTML()}
+  ${deloadHTML()}${backupNudge()}
   ${today.length?`<h2>Continue today's workout</h2>${today.map(w=>`<button class="row-tap" data-act="cont" data-id="${w.id}"><span><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDur(w.end-w.start)} so far, ${w.exercises.length} exercise${w.exercises.length>1?'s':''}</span></span><span class="btn sm">Continue</span></button>`).join('')}`:''}
   ${planHTML()}
   ${recent.length?`<h2>Past workouts</h2>${recent.map(w=>{const inPlan=S.routines.some(r=>r.from===w.id);return`<div class="plan-card"><div class="top-r"><span style="min-width:0"><span class="t">${esc(w.name)}</span>
@@ -1000,6 +1000,8 @@ $('view').addEventListener('click',e=>{
   if(act==='phPose'){photoPose=b.dataset.p;cmpA=cmpB=null;render();return}
   if(act==='phAdd'){openPhotoAdd();return}
   if(act==='phOpen'){openPhoto(b.dataset.id);return}
+  if(act==='bkOpen'){openBackup();return}
+  if(act==='bkLater'){S.backupSnooze=Date.now()+14*DAY;saveLocal();render();return}
   if(act==='kind'){const sets=S.active.exercises[i].sets,x=sets[j];x.k=cycleKind(x.k,j);if(!x.k)delete x.k;touch();render();toast(x.k==='w'?'Warm-up set. It won\'t count towards PRs or volume.':x.k==='d'?'Drop set. No rest before it.':'Normal set');return}
   if(act==='rKind'){const x=editR.exercises[i].sets[j];x.k=cycleKind(x.k,j);if(!x.k)delete x.k;render();return}
   if(act==='coachUse'){useCoach(i);return}
@@ -1189,7 +1191,7 @@ const extOf=t=>/mp4/.test(t)?'mp4':/quicktime/.test(t)?'mov':/webm/.test(t)?'web
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 function shareFile(blob,name){const f=new File([blob],name,{type:blob.type||'video/mp4'});
   if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(e=>{if(e&&e.name!=='AbortError')saveFile(f)})}else saveFile(f)}
-function saveFile(f){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('Video saved to your downloads')}
+function saveFile(f){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('Saved to your downloads')}
 function copyCap(t){try{navigator.clipboard.writeText(t).then(()=>toast('Caption copied. Paste it when you post.'),()=>{})}catch(_){}}
 const canBurn=()=>!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
 function openShare(r){burnOut=null;const cap=caption(r);
@@ -1375,6 +1377,7 @@ function openSettings(){openSheet('Settings',`
   <div class="opt-row"><span><span class="t">Overload coach</span><br><span class="s">Shows today's target on each exercise, based on last time.</span></span>${swBtn('coach',S.coach,'Overload coach')}</div>
   <div class="opt-row"><span><span class="t">Deload week</span><br><span class="s">${deloadOn()?'On until '+fmtDate(S.deload)+'.':'Lighter weights and fewer sets for 7 days, to recover.'}</span></span><button class="btn sm" data-pact="${deloadOn()?'dlEnd':'dlStart'}">${deloadOn()?'End':'Start'}</button></div>
   <div class="opt-row"><span><span class="t">Plate calculator</span><br><span class="s">Bar ${S.bar?S.bar+' kg':'none'}, ${S.plates.length} plate sizes.</span></span><button class="btn sm" data-pact="openPl">Open</button></div>
+  <div class="opt-row"><span><span class="t">Backup</span><br><span class="s">${S.lastBackup?'Last backup '+ago(S.lastBackup)+'.':'Never backed up.'} Save a copy of everything, or restore one.</span></span><button class="btn sm" data-pact="openBk">Open</button></div>
   <div class="opt-row" style="border-bottom:0"><span><span class="t">Apple Health</span><br><span class="s">Adds a "Send to Apple Health" button after each workout.</span></span>${swBtn('health',S.health,'Apple Health')}</div>
   <div class="panel" style="margin-top:4px"><b>One-time setup on your iPhone</b>
   <p class="small muted" style="margin:6px 0 0">Web apps can't write to Health directly, so Lift Log passes each workout to a Shortcut that logs it for you.</p>
@@ -1399,6 +1402,12 @@ $('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-pact]');
   if(k==='dlStart'){S.deload=Date.now()+7*DAY;saveProfile(true);render();openSettings();toast('Deload week started');return}
   if(k==='dlEnd'){S.deload=0;S.deloadSnooze=Date.now()+21*DAY;saveProfile(true);render();openSettings();toast('Deload ended');return}
   if(k==='openPl'){openPlates(null,null);return}
+  if(k==='openBk'){openBackup();return}
+  if(k==='bkOpt'){bkOpts[b.dataset.o]=!bkOpts[b.dataset.o];bkOut=null;openBackup();return}
+  if(k==='bkMake'){makeBackup();return}
+  if(k==='bkSave'&&bkOut){shareFile(bkOut.blob,bkOut.name);markBackedUp();return}
+  if(k==='bkPick'){rsIn.value='';rsIn.click();return}
+  if(k==='rsMerge'||k==='rsReplace'){if(!rsData)return;if(k==='rsReplace'){askConfirm('Replace everything?',`Your current workouts, plans and settings on this phone${profRef?' and in your account':''} will be replaced with the backup from ${fmtDate(rsData.date)}. Photos and videos are only ever added, never deleted.`,'Replace',()=>applyRestore('replace'),()=>showRestore());return}applyRestore('merge');return}
   if(k==='hkTest'){const now=Date.now();location.href='shortcuts://run-shortcut?name='+encodeURIComponent(HK_NAME)+'&input=text&text='+encodeURIComponent(healthPayload({name:'Lift Log test',start:now-30*6e4,end:now,exercises:[]}));return}
 });
 
@@ -1489,6 +1498,64 @@ $('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-pact]');
   if(b.dataset.pact==='phPick'){phPose=b.dataset.pose;phIn.value='';phIn.click();return}
   if(b.dataset.pact==='phDel'){const id=b.dataset.id;askConfirm('Delete photo?','This photo will be removed from your phone.','Delete photo',()=>{PDB.del(id).then(()=>{photos=photos.filter(x=>x.id!==id);if(photoURLs[id]){URL.revokeObjectURL(photoURLs[id]);delete photoURLs[id]}closeSheet();render();toast('Photo deleted')},()=>toast('Could not delete that photo'))},()=>openPhoto(id));return}
 });
+
+/* ================= Backup & restore =================
+   One file with everything: workouts, plans, custom exercises and settings, plus photos and videos if you tick them.
+   Save it to iCloud Drive or Files, or email it to yourself. Restore it on any phone. */
+let bkOpts={photos:true,clips:false},bkOut=null,rsData=null;
+const pl=(n,w,ws)=>n+' '+(n===1?w:(ws||w+'s'));
+const ago=ts=>{const d=Math.floor((Date.now()-ts)/DAY);return d<1?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.round(d/7)+' weeks ago':Math.round(d/30)+' months ago'};
+const mb=n=>n>=1e6?(n/1e6).toFixed(n>=1e8?0:1)+' MB':Math.max(1,Math.round(n/1e3))+' KB';
+const blobData=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)});
+function backupCore(){const keep=['workouts','custom','routines','rest','sound',...PROF_EXTRA];const d={};keep.forEach(k=>{if(S[k]!==undefined)d[k]=clone(S[k])});return d}
+function markBackedUp(){S.lastBackup=Date.now();S.backupSnooze=0;saveLocal();render()}
+function backupNudge(){if(S.workouts.length<5||Date.now()-(S.lastBackup||0)<30*DAY||Date.now()<(S.backupSnooze||0))return'';
+  return`<div class="alert" style="border-left-color:var(--accent)"><h3>Back up your workouts</h3><p>${S.lastBackup?'Your last backup was '+ago(S.lastBackup)+'.':`You've logged ${S.workouts.length} workouts and haven't saved a backup yet.`} Keep a copy in iCloud Drive or email it to yourself, so a lost or new phone doesn't mean losing your log.</p>
+  <div class="btn-grid"><button class="btn sm primary" data-act="bkOpen">Back up now</button><button class="btn sm" data-act="bkLater">Later</button></div></div>`}
+function openBackup(){const pSize=photos.reduce((n,x)=>n+(x.blob&&x.blob.size||0),0),cl=Object.values(clips),cSize=cl.reduce((n,x)=>n+(x.blob&&x.blob.size||0),0);
+  const sw=(o,on,t,sub)=>`<div class="opt-row"><span><span class="t">${t}</span><br><span class="s">${sub}</span></span><button class="sw" role="switch" aria-checked="${!!on}" aria-label="${esc(t)}" data-pact="bkOpt" data-o="${o}"></button></div>`;
+  openSheet('Backup & restore',`<p class="muted small" style="margin-top:0">${S.lastBackup?'Last backup '+ago(S.lastBackup)+'.':'You have not made a backup yet.'} A backup is a single file. Save it to iCloud Drive or Files, or email it to yourself.</p>
+  <div class="panel"><b>Back up</b>
+  <p class="small" style="margin:6px 0 0">${pl(S.workouts.length,'workout')}, ${pl(S.routines.length,'plan workout')}, ${pl(S.custom.length,'custom exercise')} and your settings.</p>
+  ${sw('photos',bkOpts.photos,'Include progress photos',photos.length?`${pl(photos.length,'photo')}, about ${mb(pSize*1.37)}`:'No photos yet')}
+  ${sw('clips',bkOpts.clips,'Include set videos',cl.length?`${pl(cl.length,'video')}, about ${mb(cSize*1.37)}. Large, so off by default.`:'No videos yet')}
+  ${bkOut?`<p class="small" style="margin:10px 0">✓ Backup ready: <b>${esc(bkOut.name)}</b> (${mb(bkOut.blob.size)})</p><button class="btn primary block" data-pact="bkSave">Save backup file</button>`
+    :`<button class="btn primary block" style="margin-top:10px" data-pact="bkMake">Create backup</button>`}</div>
+  <div class="panel"><b>Restore</b><p class="small muted" style="margin:6px 0 10px">Pick a Lift Log backup file. You'll see what's in it before anything changes.</p>
+  <button class="btn block" data-pact="bkPick">Choose backup file</button></div>`)}
+async function makeBackup(){const btn=document.querySelector('[data-pact=bkMake]');if(btn){btn.disabled=true;btn.textContent='Preparing…'}
+  try{const out={app:'liftlog',v:1,date:Date.now(),data:backupCore(),photos:[],clips:[]};
+    if(bkOpts.photos)for(const x of photos)out.photos.push({id:x.id,pose:x.pose,date:x.date,data:await blobData(x.blob)});
+    if(bkOpts.clips)for(const x of Object.values(clips)){const{blob,...meta}=x;out.clips.push({...meta,data:await blobData(blob)})}
+    const blob=new Blob([JSON.stringify(out)],{type:'application/json'});
+    bkOut={blob,name:`lift-log-backup-${ymd(Date.now())}.json`};openBackup()}
+  catch(e){console.warn(e);toast('Could not make the backup. Try without videos.');openBackup()}}
+const rsIn=document.createElement('input');rsIn.type='file';rsIn.accept='.json,application/json,text/plain';rsIn.style.display='none';document.body.appendChild(rsIn);
+rsIn.addEventListener('change',async()=>{const f=rsIn.files&&rsIn.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!d||d.app!=='liftlog'||!d.data||!Array.isArray(d.data.workouts))throw new Error('not a backup');rsData=d;showRestore()}
+  catch(e){toast("That file isn't a Lift Log backup.")}});
+function showRestore(){const d=rsData,D=d.data,ws=D.workouts,have=new Set(S.workouts.map(w=>w.id)),fresh=ws.filter(w=>!have.has(w.id)).length;
+  const span=ws.length?`${fmtDate(Math.min(...ws.map(w=>w.start)))} to ${fmtDate(Math.max(...ws.map(w=>w.start)))}`:'';
+  openSheet('Restore backup',`<p style="margin-top:0">Backup made <b>${fmtDate(d.date,true)}</b>.</p>
+  <div class="panel small"><div>${pl(ws.length,'workout')}${span?`, ${span}`:''}</div><div>${pl((D.routines||[]).length,'plan workout')}, ${pl((D.custom||[]).length,'custom exercise')}</div>
+  <div>${pl((d.photos||[]).length,'progress photo')}, ${pl((d.clips||[]).length,'video')}</div></div>
+  <div class="opt-row"><span><span class="t">Add to what's here</span><br><span class="s">Adds the ${fresh} workout${fresh===1?'':'s'} you don't already have, plus missing plans and exercises. Nothing is removed.</span></span></div>
+  <div class="opt-row" style="border-bottom:0"><span><span class="t">Replace everything</span><br><span class="s">Makes this phone match the backup exactly. Use this on a new phone.</span></span></div>`,
+  `<div class="btn-grid"><button class="btn" data-pact="rsReplace">Replace</button><button class="btn primary" data-pact="rsMerge">Add to what's here</button></div>`)}
+async function applyRestore(mode){const d=rsData,D=d.data;rsData=null;
+  if(mode==='replace'){const keep=new Set(D.workouts.map(w=>w.id));S.workouts.forEach(w=>{if(!keep.has(w.id))removeWorkout(w.id)});
+    S.workouts=clone(D.workouts);S.routines=clone(D.routines||[]);S.custom=clone(D.custom||[]);
+    ['rest','sound',...PROF_EXTRA].forEach(k=>{if(D[k]!==undefined)S[k]=clone(D[k])});S.workouts.forEach(saveWorkout)}
+  else{const have=new Set(S.workouts.map(w=>w.id));D.workouts.filter(w=>!have.has(w.id)).forEach(w=>{S.workouts.push(clone(w));saveWorkout(w)});
+    const rh=new Set(S.routines.map(r=>r.id));(D.routines||[]).forEach(r=>{if(!rh.has(r.id))S.routines.push(clone(r))});
+    const ch=new Set(S.custom.map(c=>c.name));(D.custom||[]).forEach(c=>{if(!ch.has(c.name))S.custom.push(clone(c))});
+    if(D.barFor){S.barFor=Object.assign({},D.barFor,S.barFor||{})}}
+  saveProfile(true);let nP=0,nC=0;
+  try{const ph=new Set(photos.map(x=>x.id));for(const x of d.photos||[]){if(ph.has(x.id))continue;const blob=await (await fetch(x.data)).blob();const r={id:x.id,pose:x.pose,date:x.date,blob};await PDB.put(r);photos.push(r);nP++}
+    for(const x of d.clips||[]){if(clips[x.key])continue;const{data,...meta}=x;const blob=await (await fetch(data)).blob();const r={...meta,blob};await VDB.put(r);clips[r.key]=r;nC++}}
+  catch(e){console.warn(e);toast('Workouts restored, but some photos or videos could not be added.')}
+  closeSheet();tab='workout';render();window.scrollTo(0,0);
+  toast(mode==='replace'?`Restored ${S.workouts.length} workouts from your backup`:`Backup added${nP||nC?', with '+[nP?nP+' photo'+(nP>1?'s':''):'',nC?nC+' video'+(nC>1?'s':''):''].filter(Boolean).join(' and '):''}`)}
 
 /* ================= Finish & PRs ================= */
 function finishWorkout(){
