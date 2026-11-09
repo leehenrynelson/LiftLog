@@ -188,6 +188,34 @@ h3{font-size:1.2rem;margin:0}
 .ph-add button{border:1px dashed var(--accent);background:var(--soft);color:var(--accent);border-radius:14px;padding:22px 6px;font-weight:700;cursor:pointer}
 .ph-add button.got{border-style:solid;background:color-mix(in srgb,var(--green) 16%,var(--surface));color:var(--green);border-color:var(--green)}
 .ph-big{width:100%;border-radius:14px;display:block;background:#000}
+.toast .undo{border:0;background:transparent;color:var(--yellow);font-weight:700;font-size:.92rem;padding:4px 2px;cursor:pointer;flex:none}
+.ex-card .hd h3{flex:1;min-width:0}
+.hd-btns{display:flex;align-items:center;gap:4px;flex:none}
+.hd-btns .mv button{width:30px;height:30px}
+.stepbar{display:flex;gap:6px;padding:4px 0 6px;flex-wrap:nowrap}
+.stepbar button{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 0;font-weight:700;font-size:.9rem;color:var(--accent);cursor:pointer;font-variant-numeric:tabular-nums;touch-action:manipulation}
+.stepbar button.nx{flex:1.3;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.wk-note-l{display:block;font-weight:700;font-size:.9rem;margin:6px 2px 6px}
+.h-tools{display:grid;gap:8px;margin-bottom:6px}
+.h-tools .row2{display:grid;grid-template-columns:1fr auto;gap:8px}
+.h-tools select{padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.h-count{font-size:.85rem;color:var(--muted);margin:4px 2px 8px}
+.h-note{font-style:italic}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 10px 12px;margin-bottom:12px}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cal-hd h3{margin:0}
+.cal-hd button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:1.2rem;font-weight:700;color:var(--accent);cursor:pointer}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-g .dw{font-size:.72rem;color:var(--muted);font-weight:700;padding:2px 0}
+.cal-g button{aspect-ratio:1;border:0;border-radius:10px;background:transparent;font-weight:600;font-size:.9rem;cursor:pointer;position:relative;color:var(--ink);padding:0;font-variant-numeric:tabular-nums}
+.cal-g button.out{color:var(--muted);opacity:.45}
+.cal-g button.has{background:var(--accent);color:var(--accent-ink)}
+.cal-g button.has.dim{background:var(--soft);color:var(--accent)}
+.cal-g button.today{box-shadow:inset 0 0 0 2px var(--yellow)}
+.cal-g button.sel{outline:3px solid var(--ink);outline-offset:1px}
+.cal-g button .n2{position:absolute;top:2px;right:4px;font-size:.6rem;font-weight:700}
+.cal-sum{display:flex;justify-content:space-around;margin-top:10px;font-size:.82rem;color:var(--muted);text-align:center}
+.cal-sum b{display:block;font-size:1.05rem;color:var(--ink);font-variant-numeric:tabular-nums}
 .tip{font-size:.82rem;color:var(--muted);text-align:center;margin:2px 0 12px}
 .addset{margin-top:6px;width:100%;border:0;background:var(--bg);border-radius:10px;padding:9px;font-weight:600;color:var(--muted);cursor:pointer}
 .actions{display:grid;gap:10px;margin-top:6px}
@@ -298,7 +326,7 @@ h3{font-size:1.2rem;margin:0}
 .ex-note::placeholder{color:var(--muted)}
 .note-last{font-size:.82rem;color:var(--muted);margin:-2px 0 6px}
 .note-hist{font-size:.88rem;color:var(--muted);font-style:italic;margin:-2px 0 4px;white-space:pre-wrap}
-.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.92rem;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast{display:flex;align-items:center;gap:12px;position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.92rem;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .hidden{display:none!important}
 .splash{position:fixed;inset:0;z-index:100;background:#FFFFFF;color:#0D121C;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);transition:opacity .35s ease,visibility .35s}
 .splash.out{opacity:0;visibility:hidden}
@@ -732,7 +760,9 @@ function projHTML(){
   ${dseg}${body}${projKey?foot:''}</div>`}
 
 /* ================= UI plumbing ================= */
-let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add('hidden'),2600)}
+let toastT,undoFn=null;function toast(m){undoFn=null;const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add('hidden'),2600)}
+function toastUndo(m,fn){const t=$('toast');undoFn=fn;t.innerHTML=`<span>${esc(m)}</span><button class="undo" id="undoBtn">Undo</button>`;t.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.add('hidden');undoFn=null},5000)}
+$('toast').addEventListener('click',e=>{if(e.target.id==='undoBtn'&&undoFn){const f=undoFn;undoFn=null;$('toast').classList.add('hidden');f()}});
 function openSheet(title,body,footer){sheetEx=null;if(footer==='')footer=null;
   $('sheetBody').innerHTML=`<div class="sheet-hd"><h2>${title}</h2><button class="btn sm" data-close>Close</button></div><div class="sheet-scroll" id="sheetScroll">${body}</div>${footer?`<div class="sheet-ft">${footer}</div>`:''}`;
   $('sheet').classList.remove('hidden');document.body.style.overflow='hidden'}
@@ -859,7 +889,7 @@ const restLabel=s=>s?(s>=60?(s%60?(s/60).toFixed(1).replace('.0',''):s/60)+' min
 function viewRoutine(){const r=editR;
   return`<div class="wk-head"><input class="wk-name" id="rName" value="${esc(r.name)}" placeholder="Workout name, e.g. Day 1 Chest" aria-label="Workout name" maxlength="60"></div>
   <p class="muted small" style="margin:-4px 0 12px">Add your exercises, sets and target weights. Nothing is logged until you start it.</p>
-  ${r.exercises.map((e,i)=>{const[fa,fb]=FIELDS[exInfo(e.name).type],g=ssInfo(r.exercises,i);return`<div class="ex-card${g?' ss-card'+(g.last?'':' ss-mid'):''}">${g&&g.first?`<div class="ss-tag">Superset ${g.letter}</div>`:''}<div class="hd"><h3>${esc(e.name)}</h3><button class="x" data-act="rRmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
+  ${r.exercises.map((e,i)=>{const[fa,fb]=FIELDS[exInfo(e.name).type],g=ssInfo(r.exercises,i);return`<div class="ex-card${g?' ss-card'+(g.last?'':' ss-mid'):''}">${g&&g.first?`<div class="ss-tag">Superset ${g.letter}</div>`:''}<div class="hd"><h3>${esc(e.name)}</h3>${hdBtns(i,r.exercises.length,'r')}</div>
     ${toolsHTML(e,i,r.exercises,'r')}
     <label class="ex-rest">Rest timer <select data-rrest="${i}">${restOpts(e.rest)}</select></label>
     ${noteBox(e.note,`data-rnote="${i}"`,'Notes, e.g. seat on 4, slow on the way down')}
@@ -879,7 +909,7 @@ function isToday(ts){const d=new Date(ts),n=new Date();return d.toDateString()==
 /* Re-open a finished workout: mode 'edit' fixes it up, mode 'resume' carries on training (split sessions) */
 function loadWorkout(w,mode){if(!w)return;
   if(S.active){toast('Finish or discard your current workout first.');return}
-  S.active={id:w.id,name:w.name,routine:w.routine,start:Date.now(),updated:Date.now(),mode,orig:{start:w.start,end:w.end},
+  S.active={id:w.id,name:w.name,routine:w.routine,note:w.note||'',start:Date.now(),updated:Date.now(),mode,orig:{start:w.start,end:w.end},
     exercises:w.exercises.map(e=>({name:e.name,...(e.ss?{ss:e.ss}:{}),...(e.note?{note:e.note}:{}),sets:e.sets.map(x=>({a:x.a??'',b:x.b??'',done:true,...(x.k?{k:x.k}:{})}))}))};
   tab='workout';saveProfile(true);closeSheet();render();window.scrollTo(0,0);
   toast(mode==='edit'?'Editing. Change anything, then Save changes.':'Carry on where you left off.')}
@@ -902,25 +932,53 @@ function viewActive(){
   ${a.tip&&!ed?`<p class="prog-tip">${esc(a.tip)}</p>`:''}
   ${a.exercises.map((e,i)=>exCard(e,i)).join('')||'<p class="empty">No exercises yet.</p>'}
   ${a.exercises.some(e=>e.sets.length)?'<p class="tip">Swipe a set left to delete it. Tap a set number to switch it to a warm-up (W) or drop set (D).</p>':''}
+  ${a.exercises.length?`<label class="wk-note-l" for="wkNote">Workout notes</label><textarea class="ex-note" id="wkNote" rows="${Math.min(6,Math.max(2,(a.note||'').split('\n').length))}" maxlength="${NOTE_MAX}" placeholder="How did it go? Sleep, energy, anything to remember">${esc(a.note||'')}</textarea>`:''}
   <div class="actions"><button class="btn block" data-act="pick">Add exercises</button>
   <button class="btn primary block" data-act="finish">${ed?'Save changes':'Finish workout'}</button>
   <button class="btn danger block" data-act="discard">${a.mode?'Cancel, keep it as it was':'Discard workout'}</button></div>`}
 function exCard(e,i){
   const a=S.active,info=exInfo(e.name),[fa,fb]=FIELDS[info.type],prevAll=prevSets(e.name,a.id),best=histBest(e.name);
   const prev=e.sets.map((_,j)=>alignPrev(prevAll,e.sets,j)),g=ssInfo(a.exercises,i),c=S.coach&&a.mode!=='edit'?coach(e):null;
-  return`<div class="ex-card${g?' ss-card'+(g.last?'':' ss-mid'):''}">${g&&g.first?`<div class="ss-tag">Superset ${g.letter} · rest after the last exercise</div>`:''}<div class="hd"><h3>${esc(e.name)}${e.rest!=null?`<span class="rest-tag">${restLabel(e.rest)}</span>`:''}</h3><button class="x" data-act="rmEx" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button></div>
+  return`<div class="ex-card${g?' ss-card'+(g.last?'':' ss-mid'):''}">${g&&g.first?`<div class="ss-tag">Superset ${g.letter} · rest after the last exercise</div>`:''}<div class="hd"><h3>${esc(e.name)}${e.rest!=null?`<span class="rest-tag">${restLabel(e.rest)}</span>`:''}</h3>${hdBtns(i,a.exercises.length,'')}</div>
   ${(()=>{const last=lastNote(e.name,S.active.id);return last&&last!==(e.note||'').trim()?`<p class="note-last"><b>Last time:</b> ${esc(last)}</p>`:''})()}
   ${c?coachHTML(c,i,info.type):''}${toolsHTML(e,i,a.exercises,'')}
   ${noteBox(e.note,`data-note="${i}"`,'Add a note: seat height, grip, how it felt')}
   <div class="set-head"><span>Set</span><span>Previous</span><span>${fa}</span><span>${fb}</span><span aria-label="Video">🎥</span><span></span></div>
   ${e.sets.map((s,j)=>`<div class="set-row ${s.done?'done':''}${s.k?' k-'+s.k:''}"><button class="set-del" data-act="delSet" data-i="${i}" data-j="${j}" tabindex="-1">Delete</button>
   <div class="set-fg" data-i="${i}" data-j="${j}"><span class="setno"><button class="kind ${s.k||''}" data-act="kind" data-i="${i}" data-j="${j}" aria-label="Set ${setLabel(e.sets,j)}, tap to change set type">${setLabel(e.sets,j)}</button>${s.done&&setPR(e,j,best)?'<span class="prb">PR</span>':''}</span><span class="prev">${prev[j]?esc(fmtSet(prev[j],info.type)):'–'}</span>
-  <input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="a" value="${esc(s.a??'')}" placeholder="${prev[j]&&prev[j].a!=null?esc(prev[j].a):''}" aria-label="${fa} set ${j+1}">
-  <input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="b" value="${esc(s.b??'')}" placeholder="${prev[j]&&prev[j].b!=null?esc(prev[j].b):''}" aria-label="${fb} set ${j+1}">
+  <input inputmode="decimal" enterkeyhint="next" data-i="${i}" data-j="${j}" data-f="a" value="${esc(s.a??'')}" placeholder="${prev[j]&&prev[j].a!=null?esc(prev[j].a):''}" aria-label="${fa} set ${j+1}">
+  <input inputmode="decimal" enterkeyhint="next" data-i="${i}" data-j="${j}" data-f="b" value="${esc(s.b??'')}" placeholder="${prev[j]&&prev[j].b!=null?esc(prev[j].b):''}" aria-label="${fb} set ${j+1}">
   ${camBtn(e.name,j)}<button class="tick" data-act="tick" data-i="${i}" data-j="${j}" aria-label="Mark set ${j+1} done" aria-pressed="${!!s.done}">✓</button></div></div>${clipPanel(e.name,j)}`).join('')}
   <button class="addset" data-act="addSet" data-i="${i}">Add set</button></div>`}
 
 function touch(){S.active.updated=Date.now();saveProfile()}
+function hdBtns(i,n,pre){return`<span class="hd-btns"><span class="mv"><button data-act="${pre?'rExMv':'exMv'}" data-i="${i}" data-d="-1" ${i===0?'disabled':''} aria-label="Move up">↑</button><button data-act="${pre?'rExMv':'exMv'}" data-i="${i}" data-d="1" ${i===n-1?'disabled':''} aria-label="Move down">↓</button></span><button class="x" data-act="${pre?'rRmEx':'rmEx'}" data-i="${i}" aria-label="Remove exercise">×</button></span>`}
+/* Move an exercise; if that splits a superset, the moved exercises leave it */
+function moveEx(list,i,d){const j=i+d;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];
+  const seen={};let prev=null;list.forEach(e=>{if(e.ss){if(seen[e.ss]&&prev!==e.ss)delete e.ss;else seen[e.ss]=1}prev=e.ss||null});ssClean(list)}
+/* Quick entry: − / + buttons and Next appear under the set you're typing in */
+let stepInp=null;
+function removeStepBar(){document.querySelectorAll('.stepbar').forEach(x=>x.remove());stepInp=null}
+function showStepBar(inp){if(stepInp===inp)return;removeStepBar();stepInp=inp;const i=+inp.dataset.i,ex=S.active&&S.active.exercises[i];if(!ex)return;
+  const info=exInfo(ex.name),f=inp.dataset.f;let steps=[];
+  if(info.type==='w'&&f==='a'){const inc=incFor(info);steps=[-2*inc,-inc,inc,2*inc]}
+  else if(info.type==='bw'&&f==='a')steps=[-2.5,2.5];
+  else if((info.type==='w'||info.type==='bw')&&f==='b')steps=[-1,1];
+  const bar=document.createElement('div');bar.className='stepbar';
+  bar.innerHTML=steps.map(v=>`<button type="button" tabindex="-1" data-step="${v}" aria-label="${v>0?'Add':'Take off'} ${f1(Math.abs(v))}">${v>0?'+':'−'}${f1(Math.abs(v))}</button>`).join('')+`<button type="button" tabindex="-1" class="nx" data-step="next">Next ›</button>`;
+  const hold=ev=>{ev.preventDefault()};bar.addEventListener('mousedown',hold);
+  bar.addEventListener('pointerdown',ev=>{const b=ev.target.closest('[data-step]');if(!b)return;ev.preventDefault();stepAct(inp,b.dataset.step)});
+  inp.closest('.set-row').after(bar)}
+function stepAct(inp,v){const i=+inp.dataset.i,j=+inp.dataset.j,f=inp.dataset.f,ex=S.active&&S.active.exercises[i];if(!ex)return;
+  if(v==='next'){nextInput(inp);return}
+  const cur=num(inp.value)??num(inp.placeholder)??0,nv=Math.max(0,Math.round((cur+(+v))*100)/100);
+  inp.value=String(nv);ex.sets[j][f]=inp.value;touch()}
+function nextInput(inp){const all=[...document.querySelectorAll('.set-fg input')],k=all.indexOf(inp);
+  let n=null;for(let q=k+1;q<all.length;q++){const r=all[q].closest('.set-row');if(!r.classList.contains('done')){n=all[q];break}}
+  if(n){n.focus();n.select&&n.select();n.scrollIntoView({block:'nearest',behavior:'smooth'})}else{inp.blur();removeStepBar()}}
+$('view').addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('.set-fg input'))showStepBar(e.target)});
+$('view').addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;if(!a||!a.matches||!a.matches('.set-fg input'))removeStepBar()},150)});
+$('view').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches&&e.target.matches('.set-fg input')){e.preventDefault();nextInput(e.target)}});
 /* ================= Exercise notes ================= */
 const NOTE_MAX=500;
 function noteBox(v,attr,ph){v=v||'';const rows=Math.min(6,Math.max(1,v.split('\n').length,Math.ceil(v.length/38)));
@@ -958,6 +1016,8 @@ $('view').addEventListener('input',e=>{
   if(t.dataset.note!=null&&S.active){S.active.exercises[+t.dataset.note].note=t.value;growNote(t);touch();return}
   if(t.dataset.rf&&editR){editR.exercises[+t.dataset.ri].sets[+t.dataset.rj][t.dataset.rf]=t.value.replace(',','.');return}
   if(t.id==='cmpR'){t.closest('.cmp').style.setProperty('--p',t.value+'%');return}
+  if(t.id==='wkNote'&&S.active){S.active.note=t.value;growNote(t);touch();return}
+  if(t.id==='histSearch'){hSearch=t.value;const el=$('histList');if(el)el.innerHTML=histBody();return}
   if(t.id==='wkName'&&S.active){S.active.name=t.value;touch();return}
   if(t.dataset.f&&S.active){const s=S.active.exercises[+t.dataset.i].sets[+t.dataset.j];s[t.dataset.f]=t.value.replace(',','.');touch()}
   if(t.id==='exSearch'){exSearch=t.value;$('exList').innerHTML=exListHTML();$('exNew').innerHTML=newExBtn(exSearch,exFilter,'data-act="addCustom"')}
@@ -967,6 +1027,7 @@ $('view').addEventListener('change',e=>{
   if(e.target.dataset.rrest!=null&&editR){const ex=editR.exercises[+e.target.dataset.rrest],v=e.target.value;if(v==='')delete ex.rest;else ex.rest=+v}
   if(e.target.id==='progSel'){progEx=e.target.value;progMetric=0;render()}
   if(e.target.id==='projSel'){projKey=e.target.value;projMet=0;render()}
+  if(e.target.id==='histRange'){hRange=e.target.value;render()}
   if(e.target.id==='cmpA'){cmpA=e.target.value;render()}
   if(e.target.id==='cmpB'){cmpB=e.target.value;render()}
 });
@@ -983,7 +1044,17 @@ $('view').addEventListener('click',e=>{
   if(act==='start')startWorkout();
   if(act==='repeat')startWorkout(S.workouts.find(w=>w.id===b.dataset.id));
   if(act==='pick')openPicker();
-  if(act==='rmEx'){const n=S.active.exercises[i].name;askConfirm('Remove exercise?',`${esc(n)} and its sets will be taken out of this workout.`,'Remove exercise',()=>{const k=S.active.exercises.findIndex(x=>x.name===n);if(k>-1)S.active.exercises.splice(k,1);ssClean(S.active.exercises);touch();closeSheet();render();toast(n+' removed')})}
+  if(act==='rmEx'){const id=S.active.id,snap=clone(S.active.exercises),n=snap[i].name;S.active.exercises.splice(i,1);ssClean(S.active.exercises);touch();render();
+    toastUndo(n+' removed',()=>{if(S.active&&S.active.id===id){S.active.exercises=snap;touch();render()}});return}
+  if(act==='exMv'){moveEx(S.active.exercises,i,+b.dataset.d);touch();render();return}
+  if(act==='rExMv'){moveEx(editR.exercises,i,+b.dataset.d);render();return}
+  if(act==='swap'){openSwap(i,'');return}
+  if(act==='rswap'){openSwap(i,'r');return}
+  if(act==='hView'){hView=b.dataset.v;render();return}
+  if(act==='hMus'){hMus=b.dataset.m;render();return}
+  if(act==='calNav'){const d=new Date(calMonth);d.setMonth(d.getMonth()+(+b.dataset.d));calMonth=d.getTime();calDay=null;render();return}
+  if(act==='calDay'){const ids=b.dataset.ids?b.dataset.ids.split(','):[];if(ids.length===1){openWorkout(ids[0]);return}calDay=calDay===b.dataset.day?null:b.dataset.day;render();return}
+  if(act==='hClear'){hSearch='';hMus='All';hRange='all';render();return}
   if(act==='addSet'){const sets=S.active.exercises[i].sets,last=sets[sets.length-1];sets.push({a:last?last.a:'',b:last?last.b:'',done:false});touch();render()}
   if(act==='delSet')deleteSet(i,j);
   if(act==='tick'){
@@ -1025,8 +1096,8 @@ $('view').addEventListener('click',e=>{
   if(act==='rStart'){const r=S.routines.find(x=>x.id===b.dataset.id);if(r){startWorkout(r,r.id);toast(r.name+' started')}}
   if(act==='rUp'||act==='rDown'){const k=+b.dataset.k,n=act==='rUp'?k-1:k+1,R=S.routines;if(n<0||n>=R.length)return;[R[k],R[n]]=[R[n],R[k]];saveProfile(true);render()}
   if(act==='rAddSet'){const sets=editR.exercises[i].sets,last=sets[sets.length-1];sets.push({a:last?last.a:'',b:last?last.b:''});render()}
-  if(act==='rDelSet'){editR.exercises[i].sets.splice(j,1);render()}
-  if(act==='rRmEx'){editR.exercises.splice(i,1);ssClean(editR.exercises);render()}
+  if(act==='rDelSet'){const ex=editR.exercises[i],[rm]=ex.sets.splice(j,1);render();toastUndo('Set deleted',()=>{if(editR&&editR.exercises.includes(ex)){ex.sets.splice(Math.min(j,ex.sets.length),0,rm);render()}})}
+  if(act==='rRmEx'){const snap=clone(editR.exercises),n=snap[i].name,r=editR;editR.exercises.splice(i,1);ssClean(editR.exercises);render();toastUndo(n+' removed',()=>{if(editR===r){editR.exercises=snap;render()}})}
   if(act==='rSave'){const n=editR.name.trim();if(!n){toast('Give this workout a name first.');const el=$('rName');if(el)el.focus();return}
     const r={id:editR.id,name:n,...(editR.from?{from:editR.from}:{}),...(editR.prog?{prog:editR.prog,tip:editR.tip}:{}),exercises:editR.exercises.map(e=>({name:e.name,...(e.rest!=null?{rest:e.rest}:{}),...(e.note&&e.note.trim()?{note:e.note.trim()}:{}),...(e.ss?{ss:e.ss}:{}),sets:e.sets.map(x=>({a:x.a,b:x.b,...(x.k?{k:x.k}:{})}))}))};
     const k=S.routines.findIndex(x=>x.id===r.id);if(k>-1)S.routines[k]=r;else S.routines.push(r);
@@ -1049,7 +1120,8 @@ $('view').addEventListener('click',e=>{
 /* ================= Swipe to delete a set ================= */
 const OPEN=92;let sw=null,suppressClick=false;
 function closeRows(except){document.querySelectorAll('.set-fg.open').forEach(f=>{if(f!==except){f.classList.remove('open');f.style.transform='';f.parentNode.classList.remove('swiping')}})}
-function deleteSet(i,j){const ex=S.active&&S.active.exercises[i];if(!ex)return;ex.sets.splice(j,1);touch();render();toast('Set deleted')}
+function deleteSet(i,j){const ex=S.active&&S.active.exercises[i];if(!ex)return;const [rm]=ex.sets.splice(j,1);touch();render();
+  toastUndo('Set deleted',()=>{if(!S.active||!S.active.exercises.includes(ex))return;ex.sets.splice(Math.min(j,ex.sets.length),0,rm);touch();render()})}
 $('view').addEventListener('pointerdown',e=>{
   const fg=e.target.closest('.set-fg');
   if(!e.target.closest('.set-row'))closeRows(null);
@@ -1079,7 +1151,16 @@ window.addEventListener('pointerup',swipeEnd);window.addEventListener('pointerca
 
 /* ================= Picker ================= */
 let pickSel=[],pickFilter='All',pickSearch='';
-function openPicker(keep){
+let swapI=null,swapT='';
+function openSwap(i,t){swapI=i;swapT=t;const list=t?editR.exercises:S.active.exercises,ex=list[i];pickFilter=exInfo(ex.name).muscle;if(!MUSCLES.includes(pickFilter))pickFilter='All';pickSearch='';pickSel=[];
+  openSheet('Swap '+esc(ex.name),`<p class="muted small" style="margin-top:0">Pick the exercise to use instead. Your sets stay in place.</p><input class="search" id="pickSearch" placeholder="Search exercises" autocomplete="off">
+  <div class="chips" id="pickChips">${chipsHTML(pickFilter,'pf')}</div><div id="pickList">${pickListHTML()}</div>`)}
+function doSwap(n){const t=swapT,list=t?editR.exercises:S.active.exercises,ex=list[swapI];swapI=null;if(!ex)return;closeSheet();if(n===ex.name)return;
+  const before=clone(ex),old=ex.name,same=exInfo(n).type===exInfo(old).type;ex.name=n;delete ex.note;
+  if(!same)ex.sets=ex.sets.map(x=>({a:'',b:'',...(t?{}:{done:false}),...(x.k?{k:x.k}:{})}));
+  if(!t)touch();render();
+  toastUndo(`Swapped to ${n}`,()=>{const L=t===''&&S.active?S.active.exercises:editR?editR.exercises:null;const k=L?L.indexOf(ex):-1;if(k>-1){L[k]=Object.assign(ex,before);if(S.active&&L===S.active.exercises)touch();render()}})}
+function openPicker(keep){swapI=null;
   if(!keep){pickSel=[];pickFilter='All';pickSearch=''}
   openSheet('Add exercises',`<input class="search" id="pickSearch" placeholder="Search exercises" autocomplete="off">
   <div class="chips" id="pickChips">${chipsHTML(pickFilter,'pf')}</div><div id="pickList">${pickListHTML()}</div>`,
@@ -1100,7 +1181,7 @@ function groupedHTML(list,filter,btn){
   return Object.keys(groups).map(m=>`<div class="group-h">${esc(m)}</div><div class="list-ex">${groups[m].map(btn).join('')}</div>`).join('')}
 function newExBtn(q,filter,attr){q=q.trim();const m=MUSCLES.includes(filter)||filter==='Other'?filter:'';
   return`<button class="btn block" style="margin-top:12px" ${attr}>${q?`Add “${esc(q)}” as a new exercise`:`Create a new ${m?esc(m.toLowerCase())+' ':''}exercise`}</button>`}
-function pickListHTML(){return groupedHTML(filterEx(pickFilter,pickSearch),pickFilter,e=>`<button data-pick="${esc(e.name)}" class="${pickSel.includes(e.name)?'sel':''}"><span class="t">${esc(e.name)}</span><span class="eq">${esc(e.equip)}</span></button>`)+newExBtn(pickSearch,pickFilter,'data-newex')}
+function pickListHTML(){return groupedHTML(filterEx(pickFilter,pickSearch),pickFilter,e=>`<button data-pick="${esc(e.name)}" class="${pickSel.includes(e.name)?'sel':''}"><span class="t">${esc(e.name)}</span><span class="eq">${esc(e.equip)}</span></button>`)+(swapI!=null?'':newExBtn(pickSearch,pickFilter,'data-newex'))}
 function renameWorkout(inp){const w=S.workouts.find(x=>x.id===inp.dataset.id);if(!w)return;
   const n=inp.value.trim().replace(/\s+/g,' ');if(!n){inp.value=w.name;return}
   if(n===w.name)return;w.name=n;saveWorkout(w);render();toast('Renamed to '+n)}
@@ -1109,7 +1190,8 @@ $('sheet').addEventListener('keydown',e=>{if(e.target.id==='histName'&&e.key==='
 $('sheet').addEventListener('input',e=>{if(e.target.id==='pickSearch'){pickSearch=e.target.value;$('pickList').innerHTML=pickListHTML()}});
 $('sheet').addEventListener('click',e=>{
   const pf=e.target.closest('[data-pf]');if(pf){pickFilter=pf.dataset.pf;$('pickChips').innerHTML=chipsHTML(pickFilter,'pf');$('pickList').innerHTML=pickListHTML();return}
-  const pk=e.target.closest('[data-pick]');if(pk){const n=pk.dataset.pick;pickSel=pickSel.includes(n)?pickSel.filter(x=>x!==n):[...pickSel,n];pk.classList.toggle('sel');
+  const pk=e.target.closest('[data-pick]');if(pk&&swapI!=null){doSwap(pk.dataset.pick);return}
+  if(pk){const n=pk.dataset.pick;pickSel=pickSel.includes(n)?pickSel.filter(x=>x!==n):[...pickSel,n];pk.classList.toggle('sel');
     updatePickBtn();return}
   if(e.target.closest('[data-newex]')){openCustom({name:pickSearch.trim(),muscle:pickFilter,fromPicker:true});return}
   if(e.target.id==='pickAdd'&&editR){pickSel.forEach(n=>{const prev=prevSets(n,null);
@@ -1274,7 +1356,7 @@ function ssToggle(list,i){const A=list[i],B=list[i+1];if(!B)return;
   ssClean(list)}
 function ssInfo(list,i){const e=list[i];if(!e.ss)return null;const ids=[];list.forEach(x=>{if(x.ss&&!ids.includes(x.ss))ids.push(x.ss)});
   const mem=list.map((x,k)=>x.ss===e.ss?k:-1).filter(k=>k>-1);return{letter:String.fromCharCode(65+ids.indexOf(e.ss)),first:mem[0]===i,last:mem[mem.length-1]===i}}
-function toolsHTML(e,i,list,pre){const info=exInfo(e.name),linked=list[i+1]&&e.ss&&list[i+1].ss===e.ss,b=[];
+function toolsHTML(e,i,list,pre){const info=exInfo(e.name),linked=list[i+1]&&e.ss&&list[i+1].ss===e.ss,b=[`<button data-act="${pre}swap" data-i="${i}">⇄ Swap</button>`];
   if(!pre&&info.type==='w')b.push(`<button data-act="warm" data-i="${i}">+ Warm-up sets</button>`);
   if(i<list.length-1)b.push(`<button data-act="${pre}${pre?'S':'s'}sLink" data-i="${i}" class="${linked?'on':''}" aria-pressed="${!!linked}">${linked?'Superset ✓ unlink':'Superset with next'}</button>`);
   if(!pre&&(info.equip==='Barbell'||info.equip==='Machine'))b.push(`<button data-act="plates" data-i="${i}">Plates</button>`);
@@ -1563,7 +1645,7 @@ function finishWorkout(){
   snapClips(a);
   const exercises=a.exercises.map(e=>({name:e.name,...(e.ss?{ss:e.ss}:{}),...(e.note&&e.note.trim()?{note:e.note.trim()}:{}),sets:e.sets.filter(s=>s.done).map(s=>({a:s.a===''?null:num(s.a),b:s.b===''?null:num(s.b),...(s.k?{k:s.k}:{})}))})).filter(e=>e.sets.length);ssClean(exercises);
   if(!exercises.length){toast(a.mode?'Tick at least one set, or delete the workout from History.':'Tick at least one set as done before finishing.');return}
-  const w={id:a.id,name:a.name.trim()||'Workout',start:a.start,end:Date.now(),exercises};if(a.routine)w.routine=a.routine;
+  const w={id:a.id,name:a.name.trim()||'Workout',start:a.start,end:Date.now(),exercises};if(a.routine)w.routine=a.routine;if(a.note&&a.note.trim())w.note=a.note.trim();
   if(a.mode){w.start=a.orig.start;w.end=a.mode==='edit'?a.orig.end:a.orig.end+(Date.now()-a.start)}
   const prs=[];
   exercises.forEach(e=>{const type=exInfo(e.name).type,m=metricsOf(e,type),hist=series(e.name,a.id);if(!hist.length)return;
@@ -1596,16 +1678,45 @@ function tickClock(){
 setInterval(tickClock,1000);
 
 /* ================= History ================= */
+let hView='list',hSearch='',hMus='All',hRange='all',calMonth=null,calDay=null;
+const H_GROUPS={Chest:['Chest'],Back:['Back'],Shoulders:['Shoulders'],Arms:['Biceps','Triceps','Forearms'],Legs:['Quads','Hamstrings','Glutes','Calves'],Core:['Core'],Cardio:['Cardio']};
+function histMatch(w){
+  if(hRange!=='all'&&w.start<Date.now()-(+hRange)*DAY)return false;
+  if(hMus!=='All'){const g=H_GROUPS[hMus]||[hMus];if(!w.exercises.some(e=>{const m=exInfo(e.name).muscle;return g.includes(m)||(m==='Full body'&&hMus!=='Cardio')}))return false}
+  const q=hSearch.trim().toLowerCase();if(!q)return true;
+  const hay=[w.name,w.note||'',...w.exercises.map(e=>e.name+' '+(e.note||'')),fmtDate(w.start,true)].join(' ').toLowerCase();
+  return q.split(/\s+/).every(t=>hay.includes(t))}
+const filtered=()=>hSearch.trim()||hMus!=='All'||hRange!=='all';
+function histRow(w){return`<button class="row-tap" data-act="hist" data-id="${w.id}"><span style="min-width:0"><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDate(w.start)}, ${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))}</span><br>
+    <span class="s">${w.exercises.slice(0,3).map(e=>e.sets.filter(x=>x.k!=='w').length+' × '+esc(e.name)).join('<br>')}${w.exercises.length>3?`<br>and ${w.exercises.length-3} more`:''}</span>${w.note?`<br><span class="s h-note">“${esc(w.note.length>90?w.note.slice(0,90)+'…':w.note)}”</span>`:''}</span><span class="muted">›</span></button>`}
+function histBody(){const ws=sorted().filter(histMatch);
+  const count=filtered()?`<div class="h-count">${pl(ws.length,'workout')} match${ws.length===1?'es':''} · <button class="link-btn" data-act="hClear">Clear</button></div>`:'';
+  if(hView==='cal')return count+calHTML(ws);
+  if(!ws.length)return count+'<p class="empty">No workouts match. Try another word or clear the filters.</p>';
+  let out='',cur='';ws.forEach(w=>{const m=new Date(w.start).toLocaleDateString('en-GB',{month:'long',year:'numeric'});if(m!==cur){cur=m;out+=`<h2>${m}</h2>`}out+=histRow(w)});return count+out}
+function calHTML(ws){const now=new Date();if(calMonth==null)calMonth=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const m0=new Date(calMonth),y=m0.getFullYear(),mo=m0.getMonth(),first=new Date(y,mo,1),lead=(first.getDay()+6)%7,start=new Date(y,mo,1-lead);
+  const byDay={};S.workouts.forEach(w=>{const k=ymd(w.start);(byDay[k]=byDay[k]||[]).push(w)});const match=new Set(ws.map(w=>w.id));
+  let cells='';for(let k=0;k<42;k++){const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+k),key=ymd(d.getTime()),list=(byDay[key]||[]).sort((a,b)=>a.start-b.start),hit=list.filter(w=>match.has(w.id));
+    if(k>=35&&d.getMonth()!==mo)break;
+    cells+=`<button data-act="calDay" data-day="${key}" data-ids="${hit.map(w=>w.id).join(',')}" class="${d.getMonth()!==mo?'out ':''}${list.length?'has ':''}${list.length&&!hit.length?'dim ':''}${key===ymd(Date.now())?'today ':''}${calDay===key?'sel':''}" aria-label="${d.toDateString()}${list.length?', '+pl(list.length,'workout'):''}">${d.getDate()}${hit.length>1?`<span class="n2">${hit.length}</span>`:''}</button>`}
+  const inMonth=ws.filter(w=>{const d=new Date(w.start);return d.getFullYear()===y&&d.getMonth()===mo});
+  const dayList=calDay?ws.filter(w=>ymd(w.start)===calDay):inMonth;
+  return`<div class="cal"><div class="cal-hd"><button data-act="calNav" data-d="-1" aria-label="Previous month">‹</button><h3>${first.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</h3><button data-act="calNav" data-d="1" aria-label="Next month">›</button></div>
+  <div class="cal-g">${['M','T','W','T','F','S','S'].map(x=>`<span class="dw">${x}</span>`).join('')}${cells}</div>
+  <div class="cal-sum"><span><b>${inMonth.length}</b>workouts</span><span><b>${fmtDur(inMonth.reduce((t,w)=>t+(w.end-w.start),0))}</b>training</span><span><b>${fmtVol(inMonth.reduce((v,w)=>v+wVolume(w),0))}</b>volume</span></div></div>
+  ${calDay?`<h2>${fmtDate(new Date(calDay+'T12:00:00').getTime(),true)}</h2>`:''}${dayList.length?dayList.map(histRow).join(''):`<p class="empty small">${calDay?'No workouts that day.':'No workouts this month.'}</p>`}`}
 function viewHistory(){
-  const ws=sorted();if(!ws.length)return'<p class="empty">No workouts yet. Finish your first workout and it will appear here.</p>';
-  let out='',cur='';
-  ws.forEach(w=>{const m=new Date(w.start).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-    if(m!==cur){cur=m;out+=`<h2>${m}</h2>`}
-    out+=`<button class="row-tap" data-act="hist" data-id="${w.id}"><span style="min-width:0"><span class="t">${esc(w.name)}</span><br><span class="s">${fmtDate(w.start)}, ${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))}</span><br>
-    <span class="s">${w.exercises.slice(0,3).map(e=>e.sets.length+' × '+esc(e.name)).join('<br>')}${w.exercises.length>3?`<br>and ${w.exercises.length-3} more`:''}</span></span><span class="muted">›</span></button>`});
-  return out}
+  if(!S.workouts.length)return'<p class="empty">No workouts yet. Finish your first workout and it will appear here.</p>';
+  const used=new Set();S.workouts.forEach(w=>w.exercises.forEach(e=>{const m=exInfo(e.name).muscle;Object.keys(H_GROUPS).forEach(g=>{if(H_GROUPS[g].includes(m))used.add(g)})}));
+  const groups=['All',...Object.keys(H_GROUPS).filter(g=>used.has(g))];
+  return`<div class="seg">${[['list','List'],['cal','Calendar']].map(([v,l])=>`<button data-act="hView" data-v="${v}" aria-pressed="${hView===v}">${l}</button>`).join('')}</div>
+  <div class="h-tools"><div class="row2"><input class="search" id="histSearch" style="margin:0" placeholder="Search workouts, exercises, notes" value="${esc(hSearch)}" autocomplete="off" enterkeyhint="search">
+  <select id="histRange" aria-label="Time period">${[['all','Any time'],['30','30 days'],['90','3 months'],['365','12 months']].map(([v,l])=>`<option value="${v}" ${hRange===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="chips" style="margin:0">${groups.map(g=>`<button class="chip" data-act="hMus" data-m="${g}" aria-pressed="${hMus===g}">${g}</button>`).join('')}</div></div>
+  <div id="histList">${histBody()}</div>`}
 function openWorkout(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;
-  openSheet(`<input class="wk-name" id="histName" data-id="${w.id}" value="${esc(w.name)}" maxlength="60" aria-label="Workout name" enterkeyhint="done">`,`<p class="muted small" style="margin:0 0 8px">Tap the name to rename this workout.</p><p class="muted" style="margin-top:0">${fmtDate(w.start,true)}<br>${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))} volume</p>
+  openSheet(`<input class="wk-name" id="histName" data-id="${w.id}" value="${esc(w.name)}" maxlength="60" aria-label="Workout name" enterkeyhint="done">`,`<p class="muted small" style="margin:0 0 8px">Tap the name to rename this workout.</p><p class="muted" style="margin-top:0">${fmtDate(w.start,true)}<br>${fmtDur(w.end-w.start)}, ${fmtVol(wVolume(w))} volume</p>${w.note?`<p class="note-hist" style="margin:0 0 12px;font-size:.95rem">“${esc(w.note)}”</p>`:''}
   ${w.exercises.map(e=>{const t=exInfo(e.name).type;return`<h3>${esc(e.name)}</h3>${e.note?`<p class="note-hist">${esc(e.note)}</p>`:''}<div class="hist-sets">${e.sets.map((s,j)=>`<div>${setLabel(e.sets,j)==='W'?'<span class="muted">Warm-up</span>':setLabel(e.sets,j)==='D'?'<span style="color:var(--purple)">Drop</span>':setLabel(e.sets,j)+'.'} ${esc(fmtSet(s,t))}</div>`).join('')}</div>`}).join('')}`,
   `<div class="btn-grid">${isToday(w.start)?`<button class="btn primary" data-sact="cont" data-id="${w.id}" style="grid-column:1/-1">Continue this workout</button>`:''}<button class="btn" data-sact="edit" data-id="${w.id}">Edit</button><button class="btn" data-sact="again" data-id="${w.id}">Do again</button><button class="btn" data-sact="toPlan" data-id="${w.id}">Add to my plan</button><button class="btn danger" data-sact="del" data-id="${w.id}">Delete</button>${S.health?`<button class="btn" data-sact="hk" data-id="${w.id}" style="grid-column:1/-1">${w.hk?'✓ Sent to Apple Health · send again':'Send to Apple Health'}</button>`:''}</div>`)}
 
