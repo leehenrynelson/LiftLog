@@ -157,6 +157,34 @@ h3{font-size:1.2rem;margin:0}
 .pl-out svg{width:100%;height:auto;display:block}
 .pl-lbl{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
 .hk-sent{font-size:.8rem;font-weight:700;color:var(--green)}
+.hm{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:end}
+.hm figure{margin:0;text-align:center}.hm figcaption{font-size:.78rem;color:var(--muted);font-weight:600;margin-top:2px}
+.hm svg{width:100%;height:auto;max-height:340px;display:block}
+.hm .base{fill:color-mix(in srgb,var(--muted) 16%,var(--surface))}
+.hm .mu{stroke:var(--surface);stroke-width:1.1;cursor:pointer;transition:opacity .15s}
+.hm .mu:hover{opacity:.8}
+.hm .l0{fill:color-mix(in srgb,var(--muted) 32%,var(--surface))}
+.hm .l1{fill:#FCE3A6}.hm .l2{fill:#F8B862}.hm .l3{fill:#EF8545}.hm .l4{fill:#D9452F}.hm .l5{fill:#9E1F1A}
+.hm-key{display:flex;align-items:center;gap:4px;justify-content:center;font-size:.75rem;color:var(--muted);margin:8px 0 2px;flex-wrap:wrap}
+.hm-key i{width:18px;height:10px;border-radius:3px;display:inline-block}
+.hm-note{font-size:.88rem;margin:8px 0 0}
+.ph-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.ph-strip button{flex:none;width:76px;border:0;padding:0;background:transparent;cursor:pointer;text-align:center;font-size:.72rem;color:var(--muted);font-weight:600}
+.ph-strip img{width:76px;height:100px;object-fit:cover;border-radius:10px;display:block;margin-bottom:3px;background:var(--line)}
+.cmp{position:relative;overflow:hidden;border-radius:14px;background:#000;aspect-ratio:3/4;--p:50%;touch-action:pan-y}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.cmp .bf{clip-path:inset(0 calc(100% - var(--p)) 0 0)}
+.cmp .ln2{position:absolute;top:0;bottom:0;left:var(--p);width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.5);pointer-events:none}
+.cmp .ln2::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-weight:700}
+.cmp .tag2{position:absolute;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:.75rem;font-weight:700;border-radius:6px;padding:2px 7px;pointer-events:none}
+.cmp input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:ew-resize}
+.cmp-sel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.cmp-sel label{font-size:.8rem;font-weight:600;color:var(--muted)}
+.cmp-sel select{width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);margin-top:4px}
+.ph-add{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.ph-add button{border:1px dashed var(--accent);background:var(--soft);color:var(--accent);border-radius:14px;padding:22px 6px;font-weight:700;cursor:pointer}
+.ph-add button.got{border-style:solid;background:color-mix(in srgb,var(--green) 16%,var(--surface));color:var(--green);border-color:var(--green)}
+.ph-big{width:100%;border-radius:14px;display:block;background:#000}
 .tip{font-size:.82rem;color:var(--muted);text-align:center;margin:2px 0 12px}
 .addset{margin-top:6px;width:100%;border:0;background:var(--bg);border-radius:10px;padding:9px;font-weight:600;color:var(--muted);cursor:pointer}
 .actions{display:grid;gap:10px;margin-top:6px}
@@ -525,6 +553,7 @@ const PROF_EXTRA=['coach','bar','plates','deload','deloadSnooze','health'];
 let editR=null,showAllPast=false;
 let tab='workout',exFilter='All',exSearch='',progEx=null,progMetric=0;
 let projBy='ex',projKey=null,projDays=60,projMet=0;
+let hmDays=7,photoPose='front',cmpA=null,cmpB=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=o=>JSON.parse(JSON.stringify(o));
@@ -925,6 +954,7 @@ $('view').addEventListener('input',e=>{
   if(t.dataset.rnote!=null&&editR){editR.exercises[+t.dataset.rnote].note=t.value;growNote(t);return}
   if(t.dataset.note!=null&&S.active){S.active.exercises[+t.dataset.note].note=t.value;growNote(t);touch();return}
   if(t.dataset.rf&&editR){editR.exercises[+t.dataset.ri].sets[+t.dataset.rj][t.dataset.rf]=t.value.replace(',','.');return}
+  if(t.id==='cmpR'){t.closest('.cmp').style.setProperty('--p',t.value+'%');return}
   if(t.id==='wkName'&&S.active){S.active.name=t.value;touch();return}
   if(t.dataset.f&&S.active){const s=S.active.exercises[+t.dataset.i].sets[+t.dataset.j];s[t.dataset.f]=t.value.replace(',','.');touch()}
   if(t.id==='exSearch'){exSearch=t.value;$('exList').innerHTML=exListHTML();$('exNew').innerHTML=newExBtn(exSearch,exFilter,'data-act="addCustom"')}
@@ -934,6 +964,8 @@ $('view').addEventListener('change',e=>{
   if(e.target.dataset.rrest!=null&&editR){const ex=editR.exercises[+e.target.dataset.rrest],v=e.target.value;if(v==='')delete ex.rest;else ex.rest=+v}
   if(e.target.id==='progSel'){progEx=e.target.value;progMetric=0;render()}
   if(e.target.id==='projSel'){projKey=e.target.value;projMet=0;render()}
+  if(e.target.id==='cmpA'){cmpA=e.target.value;render()}
+  if(e.target.id==='cmpB'){cmpB=e.target.value;render()}
 });
 function restOpts(cur){const list=[0,15,30,40,45,60,90,120,150,180,240];if(cur!=null&&!list.includes(cur))list.push(cur);list.sort((a,b)=>a-b);
   return`<option value="" ${cur==null?'selected':''}>Default</option>`+list.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s?(s>=60?(s%60?(s/60).toFixed(1):s/60)+' min':s+'s'):'None'}</option>`).join('')}
@@ -960,6 +992,11 @@ $('view').addEventListener('click',e=>{
       if(pr){prSound();toast('New PR: '+ex.name+', '+pr.text)}else{tickSound();if(nxt)toast(nxt)}}
     else s.done=false;
     touch();render()}
+  if(act==='hmDays'){hmDays=+b.dataset.d;render();return}
+  if(act==='hmMus'){const n=hmSets(hmDays)[b.dataset.m]||0;toast(`${b.dataset.m}: ${f1(n)} set${n===1?'':'s'} in the last ${hmDays} days`);return}
+  if(act==='phPose'){photoPose=b.dataset.p;cmpA=cmpB=null;render();return}
+  if(act==='phAdd'){openPhotoAdd();return}
+  if(act==='phOpen'){openPhoto(b.dataset.id);return}
   if(act==='kind'){const sets=S.active.exercises[i].sets,x=sets[j];x.k=cycleKind(x.k,j);if(!x.k)delete x.k;touch();render();toast(x.k==='w'?'Warm-up set. It won\'t count towards PRs or volume.':x.k==='d'?'Drop set. No rest before it.':'Normal set');return}
   if(act==='rKind'){const x=editR.exercises[i].sets[j];x.k=cycleKind(x.k,j);if(!x.k)delete x.k;render();return}
   if(act==='coachUse'){useCoach(i);return}
@@ -1355,6 +1392,94 @@ $('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-pact]');
   if(k==='hkTest'){const now=Date.now();location.href='shortcuts://run-shortcut?name='+encodeURIComponent(HK_NAME)+'&input=text&text='+encodeURIComponent(healthPayload({name:'Lift Log test',start:now-30*6e4,end:now,exercises:[]}));return}
 });
 
+/* ================= Muscle heat map =================
+   Working sets per muscle (warm-ups ignored). Big compound lifts also count half a set
+   towards the helper muscles, e.g. bench press towards triceps and shoulders. */
+const HELPERS=[[/Bench|Chest Press|Push-up|Dip|Incline|Decline/i,['Triceps','Shoulders']],[/Overhead Press|Shoulder Press|Arnold|Push Press/i,['Triceps']],
+  [/Row|Pull-up|Chin-up|Pulldown|Pull Down/i,['Biceps','Forearms']],[/Squat|Lunge|Leg Press|Split Squat|Step-up|Hack/i,['Glutes','Hamstrings']],
+  [/Deadlift|Good Morning|Hip Thrust|Glute Bridge/i,['Hamstrings','Glutes','Back']],[/Clean|Snatch|Thruster|Swing/i,['Shoulders','Back','Glutes']]];
+const FULL=['Quads','Glutes','Hamstrings','Back','Shoulders','Core'];
+function hmSets(days){const since=Date.now()-days*DAY,out={};const add=(m,n)=>{out[m]=(out[m]||0)+n};
+  const all=[...S.workouts];if(S.active&&!S.active.mode)all.push({start:S.active.start,exercises:S.active.exercises.map(e=>({name:e.name,sets:e.sets.filter(x=>x.done)}))});
+  all.filter(w=>w.start>=since).forEach(w=>w.exercises.forEach(e=>{const n=e.sets.filter(x=>x.k!=='w').length;if(!n)return;const m=exInfo(e.name).muscle;
+    if(m==='Cardio')return;if(m==='Full body'){FULL.forEach(f=>add(f,n*0.5));return}add(m,n);
+    HELPERS.forEach(([re,ms])=>{if(re.test(e.name))ms.forEach(h=>{if(h!==m)add(h,n*0.5)})})}));return out}
+const HM_MUS=['Chest','Back','Shoulders','Biceps','Triceps','Forearms','Core','Quads','Hamstrings','Glutes','Calves'];
+const mirror=d=>d.replace(/(-?\d+(\.\d+)?) (-?\d+(\.\d+)?)/g,(_,x,a,y)=>`${f1(100-+x)} ${y}`);
+const BODY_F=[['Shoulders','M37 34 Q27 34 24 45 Q25 52 30 52 Q32 44 39 39 Z'],['Chest','M40 37 Q49 35 49.4 38 L49.4 54 Q42 57.5 34.5 53.5 Q32.5 45 40 37 Z'],
+  ['Biceps','M24.5 51 Q22.5 61 23.2 71 L29.8 71 Q31.5 61 30.5 52.5 Z'],['Forearms','M23 73 Q20.2 85 21 97 L26.6 97 Q29.6 85 29.8 73 Z'],
+  ['Core','M38 57 Q50 59.5 62 57 L60.5 91 Q50 96.5 39.5 91 Z'],['Quads','M38.5 99 Q33 121 36.5 146 L48 146 Q50.6 122 49.4 101 Z'],['Calves','M37.3 152 Q35.2 170 38.4 191 L45.6 191 Q48.2 170 47.2 152 Z']];
+const BODY_B=[['Back','M42 28 L58 28 L65 37 L50 43 L35 37 Z'],['Shoulders','M36 34 Q27 34 24 45 Q25 52 30 52 Q32 44 38 39 Z'],['Back','M34.5 40 L50 45.5 L65.5 40 Q67.5 60 60 77 L50 80.5 L40 77 Q32.5 60 34.5 40 Z'],
+  ['Triceps','M24.5 51 Q22.5 61 23.2 71 L29.8 71 Q31.5 61 30.5 52.5 Z'],['Forearms','M23 73 Q20.2 85 21 97 L26.6 97 Q29.6 85 29.8 73 Z'],['Back','M41 79.5 L59 79.5 L58.5 92 L41.5 92 Z'],
+  ['Glutes','M37.5 94.5 Q49.5 92 49.4 96 L49.4 112 Q40.5 116.5 36 108 Z'],['Hamstrings','M36.8 116.5 Q34.6 132 37 147 L48 147 Q49.6 131 49.4 116.5 Z'],['Calves','M36.4 152 Q32.8 166 38 186 L46.2 186 Q49.4 168 47.4 152 Z']];
+const SIL='M50 4.5 C56 4.5 59.6 9.5 59.6 16 C59.6 22.5 56.5 27 54.5 28 L56 31.5 Q66 32.5 72 37 Q78.5 42 77.4 54 L77.2 72 Q80.4 86 79.2 98 L80.8 106 Q79 110 75.6 107 L73.2 98 Q70.4 86 70.6 73 L69.6 60 Q67.6 74 63 92 Q64.5 97 63.4 104 Q66.5 122 63.2 147 Q65 166 61.8 192 L63.4 198 Q57.6 201 54.2 197 L54.8 192 Q52.4 170 52.6 150 Q51.4 128 50 108 Q48.6 128 47.4 150 Q47.6 170 45.2 192 L45.8 197 Q42.4 201 36.6 198 L38.2 192 Q35 166 36.8 147 Q33.5 122 36.6 104 Q35.5 97 37 92 Q32.4 74 30.4 60 L29.4 73 Q29.6 86 26.8 98 L24.4 107 Q21 110 19.2 106 L20.8 98 Q19.6 86 22.8 72 L22.6 54 Q21.5 42 28 37 Q34 32.5 44 31.5 L45.5 28 C43.5 27 40.4 22.5 40.4 16 C40.4 9.5 44 4.5 50 4.5 Z';
+const lvl=w=>w<=0?0:w<4?1:w<8?2:w<12?3:w<16?4:5;
+function bodySVG(parts,sets,days,label){const wk=n=>n*7/days;
+  const regions=parts.flatMap(([m,d])=>[[m,d],[m,mirror(d)]]).map(([m,d])=>{const n=sets[m]||0;
+    return`<path class="mu l${lvl(wk(n))}" d="${d}" data-act="hmMus" data-m="${m}"><title>${m}: ${f1(n)} sets</title></path>`}).join('');
+  return`<svg viewBox="16 2 68 202" role="img" aria-label="${label} view of muscles trained"><path class="base" d="${SIL}"/>${regions}</svg>`}
+function heatHTML(){const sets=hmSets(hmDays),wk=n=>n*7/hmDays;
+  const none=HM_MUS.filter(m=>!(sets[m]>0)),top=HM_MUS.filter(m=>sets[m]>0).sort((a,b)=>sets[b]-sets[a]);
+  return`<h2>Muscles trained</h2><div class="panel">
+  <div class="seg">${[[7,'Last 7 days'],[30,'Last 30 days']].map(([d,l])=>`<button data-act="hmDays" data-d="${d}" aria-pressed="${hmDays===d}">${l}</button>`).join('')}</div>
+  <div class="hm"><figure>${bodySVG(BODY_F,sets,hmDays,'Front')}<figcaption>Front</figcaption></figure><figure>${bodySVG(BODY_B,sets,hmDays,'Back')}<figcaption>Back</figcaption></figure></div>
+  <div class="hm-key"><span style="flex-basis:100%;text-align:center">Sets per week</span><i class="l0" style="background:color-mix(in srgb,var(--muted) 32%,var(--surface))"></i>0 <i style="background:#FCE3A6"></i>1–3 <i style="background:#F8B862"></i>4–7 <i style="background:#EF8545"></i>8–11 <i style="background:#D9452F"></i>12–15 <i style="background:#9E1F1A"></i>16+</div>
+  ${top.length?`<p class="hm-note"><b>Most worked:</b> ${top.slice(0,3).map(m=>`${esc(m)} (${f1(sets[m])})`).join(', ')}</p>`:''}
+  ${none.length?`<p class="hm-note"><b>Not trained${hmDays===7?' this week':''}:</b> ${esc(none.join(', '))}</p>`:'<p class="hm-note"><b>Every muscle group hit.</b> Nice balance.</p>'}
+  <p class="muted small" style="margin:6px 0 0">Tap a muscle to see its sets. 10 to 20 hard sets a week is a good target for growth.</p></div>`}
+
+/* ================= Progress photos =================
+   Kept only on this phone (IndexedDB), resized to save space. Front, side and back, with a before/after slider. */
+const PDB={p:null,open(){return this.p||(this.p=new Promise((res,rej)=>{const r=indexedDB.open('liftlog-photos',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('photos',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))},
+  async run(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('photos',mode),st=t.objectStore('photos');const out=fn(st);
+    t.oncomplete=()=>res(out&&out.result);t.onerror=t.onabort=()=>rej(t.error||new Error('Storage error'))})},
+  put(r){return this.run('readwrite',st=>st.put(r))},del(k){return this.run('readwrite',st=>st.delete(k))},all(){return this.run('readonly',st=>st.getAll())}};
+let photos=[],photoURLs={},phDate=null,phGot=[];
+const POSES=[['front','Front'],['side','Side'],['back','Back']];
+async function loadPhotos(){try{photos=await PDB.all()||[];if(photos.length)render()}catch(e){console.warn('photos',e)}}
+const phURL=r=>photoURLs[r.id]||(photoURLs[r.id]=URL.createObjectURL(r.blob));
+const ymd=ts=>{const d=new Date(ts),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
+function photosHTML(){const list=photos.filter(x=>x.pose===photoPose).sort((a,b)=>b.date-a.date);
+  let cmp='';if(list.length>=2){if(!list.some(x=>x.id===cmpA))cmpA=list[list.length-1].id;if(!list.some(x=>x.id===cmpB))cmpB=list[0].id;
+    const A=list.find(x=>x.id===cmpA),B=list.find(x=>x.id===cmpB),gap=Math.round(Math.abs(B.date-A.date)/DAY),opt=sel=>list.map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${fmtDate(x.date)}</option>`).join('');
+    cmp=`<div class="cmp-sel"><label>Before<select id="cmpA">${opt(cmpA)}</select></label><label>After<select id="cmpB">${opt(cmpB)}</select></label></div>
+    <div class="cmp"><img src="${phURL(B)}" alt="After, ${fmtDate(B.date)}"><img class="bf" src="${phURL(A)}" alt="Before, ${fmtDate(A.date)}"><span class="ln2"></span>
+    <span class="tag2" style="left:8px">Before</span><span class="tag2" style="right:8px">After</span><input type="range" id="cmpR" min="0" max="100" value="50" aria-label="Drag to compare before and after"></div>
+    <p class="muted small" style="margin:6px 0 10px;text-align:center">${gap?gap>=14?Math.round(gap/7)+' weeks apart':gap+' days apart':'Same day'}. Drag across the photo to compare.</p>`}
+  return`<div class="plan-h"><h2>Progress photos</h2><button class="link-btn" data-act="phAdd">+ Add photos</button></div><div class="panel">
+  <div class="seg">${POSES.map(([k,l])=>`<button data-act="phPose" data-p="${k}" aria-pressed="${photoPose===k}">${l} (${photos.filter(x=>x.pose===k).length})</button>`).join('')}</div>
+  ${cmp}
+  ${list.length?`<div class="ph-strip">${list.map(x=>`<button data-act="phOpen" data-id="${x.id}"><img src="${phURL(x)}" alt="${esc(photoPose)} photo ${fmtDate(x.date)}" loading="lazy">${shortDate(x.date)}</button>`).join('')}</div>`
+    :`<p class="empty small">No ${photoPose} photos yet. Add one every few weeks, same spot and lighting, and you'll see changes the mirror misses.</p>`}
+  <p class="muted small" style="margin:4px 0 0">🔒 Photos stay on this phone only. They aren't uploaded or synced anywhere.</p></div>`}
+const phIn=document.createElement('input');phIn.type='file';phIn.accept='image/*';phIn.style.display='none';document.body.appendChild(phIn);let phPose=null;
+phIn.addEventListener('change',()=>{const f=phIn.files&&phIn.files[0];if(f&&phPose)savePhoto(f,phPose)});
+function openPhotoAdd(){phDate=phDate||ymd(Date.now());phGot=[];drawPhotoAdd()}
+function drawPhotoAdd(){openSheet('Add progress photos',`<label class="pl-lbl" for="phDate" style="display:block;margin-top:0">Date</label>
+  <input type="date" id="phDate" value="${phDate}" max="${ymd(Date.now())}" style="width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface)">
+  <div class="ph-add">${POSES.map(([k,l])=>`<button data-pact="phPick" data-pose="${k}" class="${phGot.includes(k)?'got':''}">${phGot.includes(k)?'✓ ':''}${l}</button>`).join('')}</div>
+  <p class="muted small" style="margin:12px 0 0">Tap a pose to take a photo or choose one from your library. Tip: same place, same light, same time of day, relaxed and flexed.</p>`,
+  `<button class="btn primary block" data-close>Done</button>`)}
+async function savePhoto(file,pose){try{
+    const url=URL.createObjectURL(file),img=new Image();img.src=url;await img.decode();
+    const sc=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    const d=new Date((phDate||ymd(Date.now()))+'T12:00:00').getTime();
+    const r={id:'p'+uid(),pose,date:isNaN(d)?Date.now():d,blob:blob||file};await PDB.put(r);photos.push(r);
+    try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
+    phGot.push(pose);photoPose=pose;cmpA=cmpB=null;render();drawPhotoAdd();toast(POSES.find(x=>x[0]===pose)[1]+' photo saved')}
+  catch(e){console.warn(e);toast(e&&e.name==='QuotaExceededError'?'Phone storage is full.':'That photo could not be saved. Try another.')}}
+function openPhoto(id){const r=photos.find(x=>x.id===id);if(!r)return;
+  openSheet(`${POSES.find(x=>x[0]===r.pose)[1]} · ${fmtDate(r.date)}`,`<img class="ph-big" src="${phURL(r)}" alt="Progress photo">`,
+  `<div class="btn-grid"><button class="btn danger" data-pact="phDel" data-id="${r.id}">Delete</button><button class="btn primary" data-close>Close</button></div>`)}
+$('sheet').addEventListener('change',e=>{if(e.target.id==='phDate')phDate=e.target.value});
+$('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-pact]');if(!b)return;
+  if(b.dataset.pact==='phPick'){phPose=b.dataset.pose;phIn.value='';phIn.click();return}
+  if(b.dataset.pact==='phDel'){const id=b.dataset.id;askConfirm('Delete photo?','This photo will be removed from your phone.','Delete photo',()=>{PDB.del(id).then(()=>{photos=photos.filter(x=>x.id!==id);if(photoURLs[id]){URL.revokeObjectURL(photoURLs[id]);delete photoURLs[id]}closeSheet();render();toast('Photo deleted')},()=>toast('Could not delete that photo'))},()=>openPhoto(id));return}
+});
+
 /* ================= Finish & PRs ================= */
 function finishWorkout(){
   const a=S.active;
@@ -1409,7 +1534,7 @@ function openWorkout(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;
 
 /* ================= Progress ================= */
 function viewProgress(){
-  if(!S.workouts.length)return'<p class="empty">Your stats and graphs appear here once you have finished a workout. Everything is free, no upgrades.</p>';
+  if(!S.workouts.length)return'<p class="empty">Your stats and graphs appear here once you have finished a workout. Everything is free, no upgrades.</p>'+photosHTML();
   const now=Date.now(),wk0=weekStart(now);
   const weeks=[...Array(12)].map((_,k)=>wk0-(11-k)*7*DAY);
   const perWeek=weeks.map(s=>S.workouts.filter(w=>w.start>=s&&w.start<s+7*DAY));
@@ -1426,13 +1551,15 @@ function viewProgress(){
   <div class="tile"><div class="n">${counts[11]}</div><div class="l">This week</div></div>
   <div class="tile"><div class="n">${streak}</div><div class="l">Week streak</div></div>
   <div class="tile"><div class="n">${fmtDur(avgDur)}</div><div class="l">Average workout</div></div></div>
+  ${heatHTML()}
   <h2>Exercise progress</h2><div class="panel">
   <select class="sel-ex" id="progSel" aria-label="Choose exercise">${names.map(n=>`<option ${n===progEx?'selected':''}>${esc(n)}</option>`).join('')}</select>
   ${exerciseBlock(progEx)}</div>
   ${projHTML()}
   <h2>Workouts per week</h2><div class="panel">${barSVG(counts,wkLbl)}</div>
   <h2>Volume per week</h2><div class="panel">${barSVG(vols,wkLbl,v=>v>=1000?f1(v/1000)+'t':Math.round(v))}<p class="muted small" style="margin:6px 0 0">Weight × reps across every set. Last 30 days: ${fmtVol(last30.reduce((v,w)=>v+wVolume(w),0))}.</p></div>
-  <h2>Sets by muscle, last 30 days</h2><div class="panel">${musArr.length?musArr.map(([m,n])=>`<div class="hbar"><span>${esc(m)}</span><span class="trk"><i style="width:${n/musMax*100}%"></i></span><b>${n}</b></div>`).join(''):'<p class="empty small">No sets in the last 30 days.</p>'}</div>`}
+  <h2>Sets by muscle, last 30 days</h2><div class="panel">${musArr.length?musArr.map(([m,n])=>`<div class="hbar"><span>${esc(m)}</span><span class="trk"><i style="width:${n/musMax*100}%"></i></span><b>${n}</b></div>`).join(''):'<p class="empty small">No sets in the last 30 days.</p>'}</div>
+  ${photosHTML()}`}
 function exerciseBlock(name){
   const type=exInfo(name).type,ser=series(name),mets=METRICS[type],k=Math.min(progMetric,mets.length-1),[label,key,unit]=mets[k];
   const vals=ser.map(s=>Math.round(s.m[key]*10)/10),labels=ser.map(s=>shortDate(s.date));
@@ -1485,6 +1612,7 @@ if(S.active)tab='workout';
   setTimeout(hide,reduce?700:1700);sp.addEventListener('click',hide)})();
 render();
 loadClips();
+loadPhotos();
 connect();
 setTimeout(checkHash,1800);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
