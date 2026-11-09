@@ -153,6 +153,7 @@ h3{font-size:1.2rem;margin:0}
 .pl-w input{flex:1;min-width:0;width:100%;font-size:1.6rem;font-weight:700;text-align:center;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-family:"Barlow Condensed",Barlow,sans-serif}
 .pl-step{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:1.3rem;font-weight:700;color:var(--accent);cursor:pointer}
 .pl-out{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0 12px;text-align:center}
+.pl-sum{font-size:.95rem;margin-bottom:6px}.pl-sum span{color:var(--muted);margin:0 2px}.pl-sum b{color:var(--accent)}
 .pl-out .per{font-size:1.15rem;font-weight:700;margin-top:6px}
 .pl-out svg{width:100%;height:auto;display:block}
 .pl-lbl{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
@@ -1350,9 +1351,10 @@ function openPlates(w){plW=w||plW;openSheet('Plate calculator',`<div class="pl-w
   <div class="pl-lbl">Plates your gym has</div><div class="chips" style="flex-wrap:wrap">${ALL_PLATES.map(p=>`<button class="chip" data-pact="plate" data-v="${p}" aria-pressed="${S.plates.includes(p)}">${p} kg</button>`).join('')}</div>`);plOut()}
 function plOut(){const el=$('plOut');if(!el)return;const r=plateMath(plW,S.bar,S.plates);
   if(!r){el.innerHTML=`<div class="pl-out"><b>Less than the bar.</b><br><span class="muted small">The bar alone weighs ${S.bar} kg.</span></div>`;return}
-  const off=Math.abs(r.load-plW)>0.01;
-  el.innerHTML=`<div class="pl-out">${plateSVG(r.side)}<div class="per">${r.side.length?'Each side: '+r.side.map(String).join(' + ')+' kg':'Just the bar'}</div>
-  <div class="muted small">${off?`Closest you can load is <b>${f1(r.load)} kg</b> with these plates.`:`${S.bar?S.bar+' kg bar + ':''}${f1(r.load-S.bar)} kg of plates = ${f1(r.load)} kg`}</div></div>`}
+  const off=Math.abs(r.load-plW)>0.01,plates=r.load-S.bar,side=plates/2;
+  el.innerHTML=`<div class="pl-out"><div class="pl-sum">${f1(plW)} kg total${S.bar?` <span>−</span> ${S.bar} kg bar`:''} <span>=</span> <b>${f1(plW-S.bar)} kg of plates</b></div>
+  ${plateSVG(r.side)}<div class="per">${r.side.length?`${f1(side)} kg each side: `+r.side.map(String).join(' + '):'Just the bar, no plates'}</div>
+  ${off?`<div class="muted small" style="margin-top:4px">Can't make exactly ${f1(plW)} kg with these plates. Closest is <b>${f1(r.load)} kg</b>.</div>`:''}</div>`}
 
 /* ================= Settings & Apple Health ================= */
 const HK_NAME='Lift Log to Health';
