@@ -645,7 +645,15 @@ function fmtSet(s,type){const a=num(s.a),b=num(s.b);
   if(type==='time')return(b!=null?b+' sec':'–')+(a?' +'+f1(a)+' kg':'');
   if(type==='bw')return(b!=null?b+' reps':'–')+(a?' +'+f1(a)+' kg':'');
   return(a!=null?f1(a)+' kg':'–')+' × '+(b!=null?b:'–')}
-function prevSets(name,excludeId){for(const w of sorted()){if(w.id===excludeId)continue;const e=w.exercises.find(x=>x.name===name);if(e)return e.sets}return null}
+/* "Same session": the same plan workout, or a workout you named the same (e.g. "10x10 legs").
+   Previous numbers and the coach look there first, then fall back to the last time you did the exercise anywhere. */
+const AUTO_NAME=/^(morning|afternoon|evening)?\s*workout$/i;
+const normName=n=>String(n||'').trim().toLowerCase().replace(/\s+/g,' ');
+function sameSession(w,ctx){if(!ctx)return false;if(ctx.routine&&w.routine===ctx.routine)return true;
+  const n=normName(ctx.name);return !!n&&!AUTO_NAME.test(n)&&normName(w.name)===n}
+function prevSets(name,excludeId,ctx){ctx=ctx===undefined?S.active:ctx;let any=null;
+  for(const w of sorted()){if(w.id===excludeId)continue;const e=w.exercises.find(x=>x.name===name);if(!e)continue;
+    if(sameSession(w,ctx))return e.sets;if(!any)any=e.sets}return any}
 function metricsOf(e,type){
   let heavy=0,best=0,vol=0,maxR=0,totR=0,dist=0,time=0,hold=0;
   e.sets.forEach(s=>{if(s.k==='w')return;const a=num(s.a)||0,b=num(s.b)||0;
@@ -1194,7 +1202,7 @@ $('sheet').addEventListener('click',e=>{
   if(pk){const n=pk.dataset.pick;pickSel=pickSel.includes(n)?pickSel.filter(x=>x!==n):[...pickSel,n];pk.classList.toggle('sel');
     updatePickBtn();return}
   if(e.target.closest('[data-newex]')){openCustom({name:pickSearch.trim(),muscle:pickFilter,fromPicker:true});return}
-  if(e.target.id==='pickAdd'&&editR){pickSel.forEach(n=>{const prev=prevSets(n,null);
+  if(e.target.id==='pickAdd'&&editR){pickSel.forEach(n=>{const prev=prevSets(n,null,{routine:editR.id,name:editR.name});
       editR.exercises.push({name:n,sets:prev?prev.map(x=>({a:x.a??'',b:x.b??'',...(x.k?{k:x.k}:{})})):[{a:'',b:''},{a:'',b:''},{a:'',b:''}]})});
     closeSheet();render();return}
   if(e.target.id==='pickAdd'){pickSel.forEach(n=>{const prev=prevSets(n,S.active.id);
@@ -1373,7 +1381,7 @@ const LOWER=['Quads','Hamstrings','Glutes','Full body'];
 function incFor(info){if(/Dumbbell|Kettlebell/.test(info.equip))return 2;return LOWER.includes(info.muscle)&&/Barbell|Machine/.test(info.equip)?5:2.5}
 const roundTo=(v,inc)=>Math.round(v/inc)*inc;
 const deloadOn=()=>!!S.deload&&Date.now()<S.deload;
-function lastSessions(name,n,skipId){const out=[];for(const w of sorted()){if(w.id===skipId)continue;const e=w.exercises.find(x=>x.name===name);if(e){const ws=e.sets.filter(x=>!x.k);if(ws.length)out.push(ws)}if(out.length>=n)break}return out}
+function lastSessions(name,n,skipId){const out=[],ctx=S.active;const pass=same=>{for(const w of sorted()){if(w.id===skipId)continue;if(same&&!sameSession(w,ctx))continue;const e=w.exercises.find(x=>x.name===name);if(e){const ws=e.sets.filter(x=>!x.k);if(ws.length)out.push(ws)}if(out.length>=n)break}};pass(true);if(!out.length)pass(false);return out}
 function planReps(ex){const a=S.active;if(!a||!a.routine)return null;const r=S.routines.find(x=>x.id===a.routine),re=r&&r.exercises.find(x=>x.name===ex.name);if(!re)return null;
   const b=re.sets.filter(x=>!x.k).map(x=>num(x.b)).filter(Boolean);return b.length?Math.max(...b):null}
 function coach(ex){const info=exInfo(ex.name);if(info.type!=='w'&&info.type!=='bw')return null;
